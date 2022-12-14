@@ -58,17 +58,17 @@ You can use the `commands` to change the settings for your Text Completion proce
 #### OpenAI Commands
 | Commands | Type     | Description                | Values                       |
 | :-------- | :------- | :------------------------- | :------------------------- |
-| `/model ` | `Command` | The model which will generate the completion. | `text-davinci-003` <br /> `text-curie-001`
-| `/temperature ` | `Command` | Control Randomness. |
-| `/max_length ` | `Command` | Maximum number of tokens to generate. |
-| `/stop ` | `Command` | n sequences where the API will stop generating further tokens. |
-| `/top_p ` | `Command` | Top probability Tokens. |
-| `/frequency_penalty` | `Command` | Decreasing the model's likelihood to repeat the same line verbatim. |
-| `/presence_penalty ` | `Command` | Increasing the model's likelihood to talk about new topics. |
-| `/best_of ` | `Command` | Generate multiple completion on the server:side and return only the best. |
-| `/n` | `Command` | How many completions to generate for each prompt. |
-| `/gen_probs ` | `Command` | Generate a full spectrum probabilities of tokens. |
-| `/echo` | `Command` | Echo back the prompt in addition to the completion. |
+| `/model ` | `Command` | The model which will generate the completion. | `text-davinci-003` <br /> `text-curie-001` <br /> `text-babbage-001` <br /> `text-ada-001` |
+| `/temperature ` | `Command` | Control Randomness. | `0` to `1` |
+| `/max_length ` | `Command` | Maximum number of tokens to generate. | `text-davinci-003` : `1` to `4096` <br /> `text-curie-001` or `text-babbage-001` or `text-ada-001` : `1` to `2048`
+| `/stop ` | `Command` | n sequences where the API will stop generating further tokens. | <user sequences> |
+| `/top_p ` | `Command` | Top probability Tokens. | `0` to `1` |
+| `/frequency_penalty` | `Command` | Decreasing the model's likelihood to repeat the same line verbatim. | `-2` to `2` |
+| `/presence_penalty ` | `Command` | Increasing the model's likelihood to talk about new topics. | `-2` to `2` |
+| `/best_of ` | `Command` | Generate multiple completion on the server:side and return only the best. | `1` to `20` |
+| `/n` | `Command` | How many completions to generate for each prompt. | `1` to `20` |
+| `/gen_probs ` | `Command` | Generate a full spectrum probabilities of tokens. | `True` or `False` |
+| `/echo` | `Command` | Echo back the prompt in addition to the completion. | `True` or `False` |
 
 ## Check Out [**ChatAI**](https://web.telegram.org/k/#@chat_with_ai_bot)
 
