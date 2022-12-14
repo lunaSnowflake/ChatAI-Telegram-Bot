@@ -60,8 +60,8 @@ You can use the `commands` to change the settings for your Text Completion proce
 | :-------- | :------- | :------------------------- | :------------------------- |
 | `/model ` | `Command` | The model which will generate the completion. | `text-davinci-003` <br /> `text-curie-001` <br /> `text-babbage-001` <br /> `text-ada-001` |
 | `/temperature ` | `Command` | Control Randomness. | `0` to `1` |
-| `/max_length ` | `Command` | Maximum number of tokens to generate. | `text-davinci-003` : `1` to `4096` <br /> `text-curie-001` or `text-babbage-001` or `text-ada-001` : `1` to `2048`
-| `/stop ` | `Command` | n sequences where the API will stop generating further tokens. | <user sequences> |
+| `/max_length ` | `Command` | Maximum number of tokens to generate. | `text-davinci-003` : `1` to `4096` <br /> `text-curie-001` : `1` to `2048` <br /> `text-babbage-001` : `1` to `2048` <br /> `text-ada-001` : `1` to `2048`
+| `/stop ` | `Command` | n sequences where the API will stop generating further tokens. | `user input` |
 | `/top_p ` | `Command` | Top probability Tokens. | `0` to `1` |
 | `/frequency_penalty` | `Command` | Decreasing the model's likelihood to repeat the same line verbatim. | `-2` to `2` |
 | `/presence_penalty ` | `Command` | Increasing the model's likelihood to talk about new topics. | `-2` to `2` |
