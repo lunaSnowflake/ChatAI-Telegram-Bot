@@ -37,7 +37,7 @@
   ```
 
   ![Generate Probabilities](https://user-images.githubusercontent.com/110465395/207262727-8039ad08-ac41-490c-b317-40407c819fb0.png)
-  ![Generated Probabilities](https://user-images.githubusercontent.com/110465395/207263888-9ce9e5d2-fd13-4c54-bee8-7f298c7c56d8.png)
+  ![Generated Probabilities](https://user-images.githubusercontent.com/110465395/207263888-9ce9e5d2-fd13-4c54-bee8-7f298c7c56d8.png) \
   *The Text completion will be generated with the user's settings.*
   
 
