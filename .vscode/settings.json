@@ -1,0 +1,7 @@
+{
+    "python.pythonPath":"C:\\Users\\Husain\\anaconda3\\envs\\TelegramBotEnv\\python.exe",
+    "python.terminal.activateEnvironment": true,
+    "terminal.integrated.defaultProfile.windows": "PowerShell",
+    "python.analysis.typeCheckingMode": "off",
+    // "terminal.integrated.shell.windows": "C:\\Windows\\System32\\cmd.exe",
+}

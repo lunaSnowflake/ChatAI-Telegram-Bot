@@ -1,0 +1,10 @@
+__pycache__/
+extra/
+tempCodeRunnerFile.py
+.env
+_QueryDB.json
+_userSettings.json
+_usersInfo.json
+_Commands.json
+*.html
+test*
