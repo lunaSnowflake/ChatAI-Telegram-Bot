@@ -268,7 +268,7 @@ async def chat (update: Update, context: ContextTypes.DEFAULT_TYPE):
         ["How to get famous?"]
     ]
     reply_markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
-    await update.callback_query.message.reply_text("• Try writting something like:\n<b>\"Write a tagline for an ice cream shop.\"</b>\n<a href='http://bit.ly/3HomDdM'>OpenAI Playground</a>", disable_web_page_preview=True, parse_mode='HTML', reply_markup=reply_markup)
+    await update.callback_query.message.reply_text("• Try writting something like:\n<b>\"Write a tagline for an ice cream shop.\"</b>\n<a href='https://bit.ly/OpenAIPlay'>OpenAI Playground</a>", disable_web_page_preview=True, parse_mode='HTML', reply_markup=reply_markup)
     #* Tell ConversationHandler that we're in state `CHAT` now
     return CHAT
 
@@ -290,7 +290,7 @@ async def image (update: Update, context: ContextTypes.DEFAULT_TYPE):
         ["A sunlit indoor lounge area with a pool containing a flamingo."]
     ]
     reply_markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
-    await update.callback_query.message.reply_text("• Try writting something like:\n<b>\"A cute chow chow dog with birthday hat.\"</b>\n<a href='http://bit.ly/3HomDdM'>OpenAI Playground</a>", disable_web_page_preview=True, parse_mode='HTML', reply_markup=reply_markup)
+    await update.callback_query.message.reply_text("• Try writting something like:\n<b>\"A cute chow chow dog with birthday hat.\"</b>\n<a href='https://bit.ly/OpenAIPlay'>OpenAI Playground</a>", disable_web_page_preview=True, parse_mode='HTML', reply_markup=reply_markup)
     #* Tell ConversationHandler that we're in state `IMAGE` now
     return IMAGE
 
