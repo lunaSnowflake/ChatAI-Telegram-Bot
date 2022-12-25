@@ -1,4 +1,4 @@
-## Started Building (telegram-bot-api): December 5, 2022  4:19
+## Started Building (telegram-bot-api v20.x): December 5, 2022  4:19
 #********************************************* OpenAI for Telegram -- Text Completion *****************************************************
 from telegram.ext import Updater
 from telegram import Update
@@ -318,36 +318,43 @@ async def openai_handler (update: Update, context: ContextTypes.DEFAULT_TYPE, ge
     try:
         #* Send Chat OpenAI request
         if (type==0):
-            response, prob_file, generated = await send_req_openai_chat(update, text, chat_id, False)
-            await bot.delete_message(chat_id=gen_msg.chat_id, message_id=gen_msg.message_id)      # Delete "Generating..." message
-            #* Prompt OpenAI Response to User if generated else raise error
-            if generated: await update.message.reply_text(response)
-            else: raise error
-            #* Send Probability File
-            if (prob_file != None):
-                with open(prob_file, 'rb') as doc:
-                    await context.bot.send_document(int(chat_id), doc)
-                import os
-                os.remove(prob_file)        # Delete Probability File
-            #* If user's first query of the day, give a Tip to change settings
-            with open('_userSettings.json', "r") as file:
-                data = json.load(file)
-            if data[chat_id]['num_openai_req'] == 1:
-                await update.message.reply_text("💡Tips:\n• You can change settings for Text Generation using 'Change Settings' from Main Menu\n• Use '🏠 Main Menu' from above pinned to go back")
+            try:
+                response, prob_file = await send_req_openai_chat(update, text, chat_id, False)
+            except Exception as err:
+                await bot.delete_message(chat_id=gen_msg.chat_id, message_id=gen_msg.message_id)      # Delete "Generating..." message
+                await update.message.reply_text("⚠ " + str(err) + "\nTry Again")
+            else:
+                await bot.delete_message(chat_id=gen_msg.chat_id, message_id=gen_msg.message_id)      # Delete "Generating..." message
+                #* Prompt OpenAI Response to User if generated else raise error
+                await update.message.reply_text(response)
+                #* Send Probability File
+                if (prob_file != None):
+                    with open(prob_file, 'rb') as doc:
+                        await context.bot.send_document(int(chat_id), doc)
+                    import os
+                    os.remove(prob_file)        # Delete Probability File
+                #* If user's first query of the day, give a Tip to change settings
+                with open('_userSettings.json', "r") as file:
+                    data = json.load(file)
+                if data[chat_id]['num_openai_req'] == 1:
+                    await update.message.reply_text("💡Tips:\n• You can change settings for Text Generation using 'Change Settings' from Main Menu\n• Use '🏠 Main Menu' from above pinned to go back")
         #* Send Image OpenAI request
         else:
             #* The maximum length is 1000 characters. (950 for buffer)
             if (len(text)>950):
-                await bot.delete_message(chat_id=gen_msg.chat_id, message_id=gen_msg.message_id)      # Delete "Generating..." message
+                await bot.delete_message(chat_id=gen_msg.chat_id, message_id=gen_msg.message_id)          # Delete "Generating..." message
                 await update.message.reply_text("❗ Query too long (The maximum length is 1000 characters.)")
             else:
-                response, generated, limit = await send_req_openai_image(update, text, chat_id, False)
-                await bot.delete_message(chat_id=gen_msg.chat_id, message_id=gen_msg.message_id)      # Delete "Generating..." message
-                #* Prompt OpenAI Response to User if generated else raise error
-                if generated:
+                try:
+                    response, limit = await send_req_openai_image(update, text, chat_id, False)
+                except Exception as err:
+                    await bot.delete_message(chat_id=gen_msg.chat_id, message_id=gen_msg.message_id)      # Delete "Generating..." message
+                    await update.message.reply_text("⚠ " + str(err) + "\nTry Again")
+                else:
+                    await bot.delete_message(chat_id=gen_msg.chat_id, message_id=gen_msg.message_id)      # Delete "Generating..." message
+                    #* Prompt OpenAI Response to User if generated else raise error
                     if (not limit): await context.bot.send_photo(chat_id=chat_id, photo=response)
                     else: await update.message.reply_text(response)
-                else: raise error
     except:
         #* Prompt Error
         await update.message.reply_text("⚠ Oops! Unexpected Error Occured.\n• But you can keep Writing! 😀\n• Or use '🏠 Main Menu' from above pinned to go back")
