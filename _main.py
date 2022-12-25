@@ -138,7 +138,7 @@ Main_Menu_Buttons = [
         InlineKeyboardButton("❤ Contact", callback_data=str(EIGHT))
     ],
     [
-        InlineKeyboardButton("🔸 ChatAI", url='https://bit.ly/ChatAI_Bot')
+        InlineKeyboardButton("🔸 ChatAI", url='https://phantom-jaguar-3137.typedream.app/')
     ]
 ]
 
@@ -214,7 +214,7 @@ async def start (update: Update, context: ContextTypes.DEFAULT_TYPE):
     #* Prompt to User
     if status:
         await update.message.reply_text(f'''
-Hello!, Welcome to <b>ChatAI</b>. 😊 <a href='https://bit.ly/ChatAI_Bot'>see the manual.</a>
+Hello!, Welcome to <a href='https://phantom-jaguar-3137.typedream.app/'>ChatAI</a> 😊
 I can help you with Text Completion - This Bot is based on <a href='https://bit.ly/OpenAI_Introduction'>OpenAI</a>
 '''
             , disable_web_page_preview=True
@@ -232,7 +232,7 @@ async def help (update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
     await update.callback_query.edit_message_text(f'''
 Hello there! 😀 
-<a href='https://bit.ly/ChatAI_Bot'>ChatAI</a> is a Telegram Bot that can help you with Text Completion.
+<a href='https://phantom-jaguar-3137.typedream.app/'>ChatAI</a> is a Telegram Bot that can help you with Text Completion.
 
 The Bot uses powerful <a href='https://bit.ly/OpenAI_Introduction'>OpenAI</a> and generates Text Completion right here in Telegram.
 <b>ChatAI is OpenAI but for Telegram.</b>
@@ -773,7 +773,7 @@ async def contact (update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.edit_message_text(
         f"Hey there! 😊. It's wonderful to see you.\nConnect with me.",
         parse_mode='HTML',
-        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔸 ChatAI", url='https://bit.ly/ChatAI_Bot')]])
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔸 ChatAI", url='https://phantom-jaguar-3137.typedream.app/')]])
     )
     #* Show Main Menu
     return await BotOptionsCallApart (update, context)
