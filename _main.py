@@ -907,7 +907,7 @@ def main():
     application.add_handler(InlineQueryHandler(inline_query_initial))
     
     #* Handle Errors
-    # application.add_error_handler(error)
+    application.add_error_handler(error)
     
     #* Open Bot to take commands
     application.run_polling()

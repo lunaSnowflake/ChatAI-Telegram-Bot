@@ -65,6 +65,50 @@ def query_DB(user_text):
         # convert back to json.
         json.dump(file_data, file, indent = 4)
 
+#? Generate Probabilities
+def calProbs (tokens, token_logprobs, prob_file_name, user_text):
+    try:
+        #* scrape out tokens after "<|endoftext|>"
+        end_text = tokens.index('<|endoftext|>')
+        tokens = tokens[:end_text]
+        token_logprobs = token_logprobs[:end_text]
+    except Exception:
+        pass
+    finally:
+        #* Calculate Probability
+        from math import exp
+        token_probs = list(map(exp, token_logprobs))
+
+        #* Make Probability HTML File
+        with open (prob_file_name,"w") as f:
+            html_str = f"<html><head></head><body><h1>{user_text}</h1><h2>"
+            for i, elem in enumerate(tokens):
+                # Color Coding
+                if (0 <= token_probs[i] < 0.1):
+                    color = "#FF6E6E"
+                elif (0.1 <= token_probs[i] < 0.2):
+                    color = "#FF8282"
+                elif (0.2 <= token_probs[i] < 0.3):
+                    color = "#FF9696"
+                elif (0.3 <= token_probs[i] < 0.4):
+                    color = "#FFC8C8"
+                elif (0.4 <= token_probs[i] < 0.5):
+                    color = "#FFE6E6"
+                elif (0.5 <= token_probs[i] < 0.6):
+                    color = "#DAFF9F"
+                elif (0.6 <= token_probs[i] < 0.7):
+                    color = "#8CFF8C"
+                elif (0.7 <= token_probs[i] < 0.8):
+                    color = "#78F878"
+                elif (0.8 <= token_probs[i] < 0.9):
+                    color = "#64E464"
+                else:
+                    color = "#5ADA5A"
+                html_str = html_str + f"<span style=\"background-color: {color}\">{elem}</span>"
+                    
+            html_str = html_str + "</h2></body></html>"
+            f.write(html_str)
+                    
 #? Make Text Completion Request
 async def request_completions(user_text, chat_id, is_defualt=False):
     
@@ -141,47 +185,9 @@ async def send_req_openai_chat (update: Update, user_text, chat_id, isInlineReq)
         if gen_probs and (not isInlineReq):
             token_logprobs = response["choices"][0]["logprobs"]["token_logprobs"]
             tokens = response["choices"][0]["logprobs"]["tokens"]
-            try:
-                #* scrape out tokens after "<|endoftext|>"
-                end_text = tokens.index('<|endoftext|>')
-                tokens = tokens[:end_text]
-                token_logprobs = token_logprobs[:end_text]
-            except Exception:
-                pass
-            finally:
-                #* Calculate Probability
-                from math import exp
-                token_probs = list(map(exp, token_logprobs))
-                #* Make Probability HTML File
-                prob_file_name = response['id'] + ".html"
-                with open (prob_file_name,"w") as f:
-                    html_str = f"<html><head></head><body><h1>{user_text}</h1><h2>"
-                    for i, elem in enumerate(tokens):
-                        # Color Coding
-                        if (0 <= token_probs[i] < 0.1):
-                            color = "#FF6E6E"
-                        elif (0.1 <= token_probs[i] < 0.2):
-                            color = "#FF8282"
-                        elif (0.2 <= token_probs[i] < 0.3):
-                            color = "#FF9696"
-                        elif (0.3 <= token_probs[i] < 0.4):
-                            color = "#FFC8C8"
-                        elif (0.4 <= token_probs[i] < 0.5):
-                            color = "#FFE6E6"
-                        elif (0.5 <= token_probs[i] < 0.6):
-                            color = "#DAFF9F"
-                        elif (0.6 <= token_probs[i] < 0.7):
-                            color = "#8CFF8C"
-                        elif (0.7 <= token_probs[i] < 0.8):
-                            color = "#78F878"
-                        elif (0.8 <= token_probs[i] < 0.9):
-                            color = "#64E464"
-                        else:
-                            color = "#5ADA5A"
-                        html_str = html_str + f"<span style=\"background-color: {color}\">{elem}</span>"
-                            
-                    html_str = html_str + "</h2></body></html>"
-                    f.write(html_str)
+            prob_file_name = response['id'] + ".html"
+            calProbs (tokens, token_logprobs, prob_file_name, user_text)
+            
     else:
         text_resp = "⚠ Oop! Maximum Request Limit Reached for Today. 😔\nTry Again Tommorrow! 😀"
         return text_resp, prob_file_name
