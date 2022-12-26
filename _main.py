@@ -13,17 +13,14 @@ from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import filters
 from telegram import Bot
 from telegram.ext import PicklePersistence
+from telegram.ext import Application
 
 import asyncio
-from telegram.ext import Application
 
 from _telegramOpenAIComds import *
 from _reqOpenAI import *
 from _BotInlineQuery import *
 # from _userSettings import *
-
-import os
-os.chdir(r'C:\Users\Husain\OneDrive\ONE Business Intelligence\CODE\Project\Telegram Bot\AsyncAdvanceBot')
 
 #! Bot API Key  -- using environment variable (from .env file) to avoid exposing the API key in the code
 BOT_TOKEN = config('TELE_BOT_API_KEY_2')
@@ -34,11 +31,9 @@ COM_TXT = []
 COM_KEYS = []
 OPENAI_KEYS = []
 
-import logging
-
 # Enable logging
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',level=logging.INFO)
-
+import logging
+logging.basicConfig(format='%(asctime)s - %(name)s - %(module)s - %(funcName)s - ln %(lineno)d - %(levelname)s - %(message)s',level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 #? Load The Command text that will used later by /help, /commands, etc
@@ -63,6 +58,7 @@ def load_commands_text():
 
 #? Add To User Info to Database (if new-user)
 async def new_user (update: Update):
+    chat_id = str(update.message.chat_id)
     try:
         #* User DataBase
         import json
@@ -76,7 +72,6 @@ async def new_user (update: Update):
         backup_sett_data = sett_data
         try:
             #* Check if user already exist in database
-            chat_id = str(update.message.chat_id)
             if (info_data.get(chat_id) is None):
                 #* User Info
                 type = update.message.chat.type
@@ -106,14 +101,16 @@ async def new_user (update: Update):
             else:
                 #* Prompt to User
                 await update.message.reply_text(f"Welcome Back {info_data[chat_id]['first_name']}! 😀")                   # Welcome User
-        except:
+        except Exception as err:
+            logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', chat_id, str(err))
             #! Incase something went wrong use we won't lose our user's Information (and Settings)
             with open("_usersInfo.json", 'w') as file:
                 json.dump(backup_info_data, file, indent=4)
             with open('_userSettings.json', "w") as file:
                 json.dump(backup_sett_data, file, indent=4)
             return False
-    except:
+    except Exception as err:
+        logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', chat_id, str(err))
         return False
     return True
 
@@ -157,11 +154,11 @@ Settings_Buttons = [
     ],
     [
         InlineKeyboardButton("presence_penalty", callback_data=str(SEVEN)),
-        InlineKeyboardButton("best_of", callback_data=str(EIGHT)),
+        InlineKeyboardButton("best_of", callback_data=str(EIGHT))
     ],
     [
         InlineKeyboardButton("n", callback_data=str(NINE)),
-        InlineKeyboardButton("gen_probs", callback_data=str(TEN)),
+        InlineKeyboardButton("gen_probs", callback_data=str(TEN))
     ],
     [
         InlineKeyboardButton("💡Get Info", callback_data=str(ELEVEN))
@@ -321,6 +318,7 @@ async def openai_handler (update: Update, context: ContextTypes.DEFAULT_TYPE, ge
             try:
                 response, prob_file = await send_req_openai_chat(update, text, chat_id, False)
             except Exception as err:
+                logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', chat_id, str(err))
                 await bot.delete_message(chat_id=gen_msg.chat_id, message_id=gen_msg.message_id)      # Delete "Generating..." message
                 await update.message.reply_text("⚠ " + str(err) + "\nTry Again")
             else:
@@ -330,7 +328,7 @@ async def openai_handler (update: Update, context: ContextTypes.DEFAULT_TYPE, ge
                 #* Send Probability File
                 if (prob_file != None):
                     with open(prob_file, 'rb') as doc:
-                        await context.bot.send_document(int(chat_id), doc)
+                        await context.bot.send_document(chat_id, doc)
                     import os
                     os.remove(prob_file)        # Delete Probability File
                 #* If user's first query of the day, give a Tip to change settings
@@ -348,6 +346,7 @@ async def openai_handler (update: Update, context: ContextTypes.DEFAULT_TYPE, ge
                 try:
                     response, limit = await send_req_openai_image(update, text, chat_id, False)
                 except Exception as err:
+                    logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', chat_id, str(err))
                     await bot.delete_message(chat_id=gen_msg.chat_id, message_id=gen_msg.message_id)      # Delete "Generating..." message
                     await update.message.reply_text("⚠ " + str(err) + "\nTry Again")
                 else:
@@ -355,8 +354,9 @@ async def openai_handler (update: Update, context: ContextTypes.DEFAULT_TYPE, ge
                     #* Prompt OpenAI Response to User if generated else raise error
                     if (not limit): await context.bot.send_photo(chat_id=chat_id, photo=response)
                     else: await update.message.reply_text(response)
-    except:
+    except Exception as err:    
         #* Prompt Error
+        logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', chat_id, str(err))
         await update.message.reply_text("⚠ Oops! Unexpected Error Occured.\n• But you can keep Writing! 😀\n• Or use '🏠 Main Menu' from above pinned to go back")
     finally:
         if (type==0):
@@ -440,7 +440,8 @@ async def Update_Command_Value (update: Update, context: ContextTypes.DEFAULT_TY
         else:                       # When called from _text() functions
             await update.message.reply_text(text = f"✅ Done! {comd} changed to: {new_val}")
             return await settings (update, context, True)     # Call settings and show Settings Menu
-    except:
+    except Exception as err:
+        logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', chat_id, str(err))
         #! Incase any Error occurs, we don't lose our user data
         with open(filename, "w") as f:
             json.dump(Backup_Data, f, indent=4)
@@ -463,7 +464,8 @@ async def model_update (update: Update, context: ContextTypes.DEFAULT_TYPE):
                 data[chat_id]['max_length'] = 2048
                 with open(filename, "w") as f:
                     json.dump(data, f, indent=4)
-            except:
+            except Exception as err:
+                logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', chat_id, str(err))
                 with open(filename, "w") as f:                      #! Incase any Error occurs, we don't lose our user data
                     json.dump(Backup_Data, f, indent=4)
                 return await comd_try_again(update, context, "⚠ Oops! Unexpected Error Occured. 😟", ONE)
@@ -506,15 +508,12 @@ async def temp_update_text (update: Update, context: ContextTypes.DEFAULT_TYPE):
     with open('_Commands.json', 'r', encoding='utf-8') as f:
         my_data = json.load(f)
     available_options = my_data["OpenAICommands"]['temperature'][1]
-        
-    try:
-        new_val = float(new_val)    # raise error if text
-        if (available_options[0] <= new_val <= available_options[1]):
-            #* Update Temperature
-            return await Update_Command_Value (update, context, chat_id, new_val, 'temperature', "⚠ Oops! Unexpected Error Occured. 😟", TWO, True)
-        else:
-            raise error
-    except:
+       
+    new_val = float(new_val)    # raise error if text
+    if (available_options[0] <= new_val <= available_options[1]):
+        #* Update Temperature
+        return await Update_Command_Value (update, context, chat_id, new_val, 'temperature', "⚠ Oops! Unexpected Error Occured. 😟", TWO, True)
+    else:
         return await comd_try_again(update, context, f"❗ Value must be between {available_options[0]} and {available_options[1]}", TWO, True)
 
 #? Update Top_P via Inline
@@ -535,14 +534,11 @@ async def top_p_update_text (update: Update, context: ContextTypes.DEFAULT_TYPE)
         my_data = json.load(f)
     available_options = my_data["OpenAICommands"]['top_p'][1]
         
-    try:
-        new_val = float(new_val)    # raise error if text
-        if (available_options[0] <= new_val <= available_options[1]):
-            #* Update Top_P
-            return await Update_Command_Value (update, context, chat_id, new_val, 'top_p', "⚠ Oops! Unexpected Error Occured. 😟", FIVE, True)
-        else:
-            raise error
-    except:
+    new_val = float(new_val)    # raise error if text
+    if (available_options[0] <= new_val <= available_options[1]):
+        #* Update Top_P
+        return await Update_Command_Value (update, context, chat_id, new_val, 'top_p', "⚠ Oops! Unexpected Error Occured. 😟", FIVE, True)
+    else:
         return await comd_try_again(update, context, f"❗ Value must be between {available_options[0]} and {available_options[1]}", FIVE, True)
 
 #? Update Frequency_Penalty via Inline
@@ -562,15 +558,12 @@ async def freq_penal_update_text (update: Update, context: ContextTypes.DEFAULT_
     with open('_Commands.json', 'r', encoding='utf-8') as f:
         my_data = json.load(f)
     available_options = my_data["OpenAICommands"]['frequency_penalty'][1]
-        
-    try:
-        new_val = float(new_val)    # raise error if text
-        if (available_options[0] <= new_val <= available_options[1]):
-            #* Update Frequency_Penalty
-            return await Update_Command_Value (update, context, chat_id, new_val, 'frequency_penalty', "⚠ Oops! Unexpected Error Occured. 😟", SIX, True)
-        else:
-            raise error
-    except:
+       
+    new_val = float(new_val)    # raise error if text
+    if (available_options[0] <= new_val <= available_options[1]):
+        #* Update Frequency_Penalty
+        return await Update_Command_Value (update, context, chat_id, new_val, 'frequency_penalty', "⚠ Oops! Unexpected Error Occured. 😟", SIX, True)
+    else:
         return await comd_try_again(update, context, f"❗ Value must be between {available_options[0]} and {available_options[1]}", SIX, True)
 
 #? Update Presence_Penalty via Inline  
@@ -591,14 +584,11 @@ async def pres_penal_update_text (update: Update, context: ContextTypes.DEFAULT_
         my_data = json.load(f)
     available_options = my_data["OpenAICommands"]['presence_penalty'][1]
         
-    try:
-        new_val = float(new_val)    # raise error if text
-        if (available_options[0] <= new_val <= available_options[1]):
-            #* Update Presence_Penalty
-            return await Update_Command_Value (update, context, chat_id, new_val, 'presence_penalty', "⚠ Oops! Unexpected Error Occured. 😟", SEVEN, True)
-        else:
-            raise error
-    except:
+    new_val = float(new_val)    # raise error if text
+    if (available_options[0] <= new_val <= available_options[1]):
+        #* Update Presence_Penalty
+        return await Update_Command_Value (update, context, chat_id, new_val, 'presence_penalty', "⚠ Oops! Unexpected Error Occured. 😟", SEVEN, True)
+    else:
         return await comd_try_again(update, context, f"❗ Value must be between {available_options[0]} and {available_options[1]}", SEVEN, True)
 
 #? Update Max_Length via Inline
@@ -750,7 +740,8 @@ async def default (update: Update, context: ContextTypes.DEFAULT_TYPE):
             data[chat_id][key] = data["defualt_settings"][key]
         with open(filename, "w") as file:
             json.dump(data, file, indent=4)
-    except:
+    except Exception as err:
+        logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', chat_id, str(err))
         with open(filename, "w") as f:                                  #! Incase any Error occurs, we don't lose our user data
             json.dump(Backup_Data, f, indent=4)
     await update.callback_query.answer()
@@ -786,9 +777,10 @@ async def contact (update: Update, context: ContextTypes.DEFAULT_TYPE):
     return await BotOptionsCallApart (update, context)
 
 #? Error Handler  
-async def error(update, context):
+async def error_han(update, context):
     """Log Errors caused by Updates."""
-    logger.warning('Update "%s" caused error "%s"', update, context.error)
+    chat_id = str(update.message.chat_id)
+    logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', chat_id, context.error)
     
 ##******************************************************* MAIN FUNCTION ******************************************************
 def main():
@@ -907,7 +899,7 @@ def main():
     application.add_handler(InlineQueryHandler(inline_query_initial))
     
     #* Handle Errors
-    application.add_error_handler(error)
+    application.add_error_handler(error_han)
     
     #* Open Bot to take commands
     application.run_polling()
