@@ -21,11 +21,11 @@ async def inline_query_initial(update: Update, context: ContextTypes.DEFAULT_TYP
                     # update.inline_query.answer(results=[InlineQueryResultArticle(id=str(uuid4()),title="ChatAI",description="Generating!🔄, Please wait.....",input_message_content=InputTextMessageContent("Not Valid!"))])
                     await inline_query_text(update, query.rstrip("\\\\"))
             else:
-                await update.inline_query.answer(results=[InlineQueryResultArticle(id=str(uuid4()),title="ChatAI",description=f"⚠ Query must not exceed 230 characters",input_message_content=InputTextMessageContent("Not Valid!"))])
+                await update.inline_query.answer(results=[InlineQueryResultArticle(id=str(uuid4()),title="ChatAI",description=f"⚠ Query must not exceed 230 characters.",input_message_content=InputTextMessageContent("Invalid Input!"))])
         else:
-            await update.inline_query.answer(results=[InlineQueryResultArticle(id=str(uuid4()),title="ChatAI",description="Put \'\\\\\' at the end to Generarte Text Completion",input_message_content=InputTextMessageContent("Not Valid!"))])
+            await update.inline_query.answer(results=[InlineQueryResultArticle(id=str(uuid4()),title="ChatAI",description="Put \'\\\\\' at the end to start Generarting.",input_message_content=InputTextMessageContent("Invalid Input!"))])
     else:
-        await update.inline_query.answer(results=[InlineQueryResultArticle(id=str(uuid4()),title="ChatAI",description="💡Start writing to Generate. End your query with \'\\\\\'",input_message_content=InputTextMessageContent("Not Valid!"))])
+        await update.inline_query.answer(results=[InlineQueryResultArticle(id=str(uuid4()),title="ChatAI",description="💡Start writing to Generate.\n• End your query with \'\\\\\'\n• For Image generation, use 'i-' flag at start.",input_message_content=InputTextMessageContent("Invalid Input!"))])
 
 #* This code is Efficient to provide Real Time "Text Completion", 
 #* though becuase to avoid unnessary (tons) of OpenAI API requests, 
