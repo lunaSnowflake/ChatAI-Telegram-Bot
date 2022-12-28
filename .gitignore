@@ -8,3 +8,5 @@ _usersInfo.json
 _Commands.json
 *.html
 test*
+*copy.py
+.vscode/
