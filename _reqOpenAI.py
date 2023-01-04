@@ -131,21 +131,37 @@ async def request_completions(user_text, chat_id, is_defualt=False):
     
     # Set the request body
     if (not is_defualt):
-        data = f"""
-        {{
-            "model": {json.dumps(model)},
-            "prompt": {json.dumps(user_text)},
-            "temperature": {json.dumps(temperature)},
-            "max_tokens": {json.dumps(max_length)},
-            "stop": {json.dumps(stop)},
-            "top_p": {json.dumps(top_p)},
-            "frequency_penalty": {json.dumps(frequency_penalty)},
-            "presence_penalty": {json.dumps(presence_penalty)},
-            "best_of" : {json.dumps(best_of)},
-            "n": {json.dumps(n)},
-            "logprobs": {json.dumps(gen_probs)},
-            "user": {json.dumps('user' + chat_id)}
-        }}"""
+        # data = f"""
+        # {{
+        #     "model": {json.dumps(model)},
+        #     "prompt": {json.dumps(user_text)},
+        #     "temperature": {json.dumps(temperature)},
+        #     "max_tokens": {json.dumps(max_length)},
+        #     "stop": {json.dumps(stop)},
+        #     "top_p": {json.dumps(top_p)},
+        #     "frequency_penalty": {json.dumps(frequency_penalty)},
+        #     "presence_penalty": {json.dumps(presence_penalty)},
+        #     "best_of" : {json.dumps(best_of)},
+        #     "n": {json.dumps(n)},
+        #     "logprobs": {json.dumps(gen_probs)},
+        #     "user": {json.dumps('user' + chat_id)}
+        # }}"""
+        data = json.dumps(
+            {
+                "model": model,
+                "prompt": user_text,
+                "temperature": temperature,
+                "max_tokens": max_length,
+                "stop": stop,
+                "top_p": top_p,
+                "frequency_penalty": frequency_penalty,
+                "presence_penalty": presence_penalty,
+                "best_of" : best_of,
+                "n": n,
+                "logprobs": gen_probs,
+                "user": 'user' + chat_id
+            }
+        )
     else:
         data = """
         {
