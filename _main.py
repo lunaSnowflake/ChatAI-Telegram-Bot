@@ -166,8 +166,7 @@ Settings_Buttons = [
 #? Add To User Info to Database (if new-user)
 async def new_user (update: Update):
     chat_id = str(update.message.from_user.id)
-    # statusCode = new_user_api(update, chat_id, withnullinfo=False)
-    statusCode = new_user_api(update, chat_id)
+    statusCode = await new_user_api(update, chat_id)
     
     #* Add New User
     isnewlyadded = False
@@ -181,7 +180,7 @@ async def new_user (update: Update):
     if isnewlyadded:
         await update.message.reply_text(f"Welcome {update.message.chat.first_name}! 😀")
         #* Add Defualt setting for new User
-        statusCode = new_setting_api(chat_id)
+        statusCode = await new_setting_api(chat_id)
         if statusCode == 201:           # User Setting Added
             return True
         else:
@@ -349,7 +348,7 @@ async def openai_handler (update: Update, context: ContextTypes.DEFAULT_TYPE, ty
                         await context.bot.send_document(chat_id, doc)
                     os.remove(prob_file)        # Delete Probability File
                 #* If user's first query of the day, give a Tip to change settings
-                num_openai_req = int(json.loads(get_user_setting_api (chat_id, sett='num_openai_req')).get('settings'))
+                num_openai_req = int(json.loads(await get_user_setting_api (chat_id, sett='num_openai_req')).get('settings'))
                 if num_openai_req == 1:
                     await update.message.reply_text("💡Tips:\n• You can change settings for Text Generation using 'Change Settings' from Main Menu.\n• Use '🏠 Main Menu' from above pinned to go back.")
         #* Send Image OpenAI request
@@ -437,7 +436,7 @@ async def comd_try_again (update: Update, text, callback_val, isText=False):
 async def Update_Command_Value (update: Update, chat_id, new_val, comd, callback_val, isText=False):
     #* Update user's settings
     setts = {comd: new_val}                                      #******** Update comd's value **********
-    statusCode = update_setting_api(chat_id, setts)
+    statusCode = await update_setting_api(chat_id, setts)
     
     if statusCode == 201:        
         if (not isText):            # When called from Callback -- replace previous prompt
@@ -458,10 +457,10 @@ async def model_update (update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     #? "text-davinci-003" the max_token is 4096, while for other models it is 2048
     if (new_val != "text-davinci-003"):
-        curr_max_length = int(json.loads(get_user_setting_api(chat_id, sett='max_length')).get('settings'))
+        curr_max_length = int(json.loads(await get_user_setting_api(chat_id, sett='max_length')).get('settings'))
         if (curr_max_length > 2048):
             setts = {"max_length": "2048"}
-            statusCode = update_setting_api(chat_id, setts)
+            statusCode = await update_setting_api(chat_id, setts)
             if statusCode != 201:
                 logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', chat_id, "During model updation max_length could not be updated")
                 return await comd_try_again(update, "⚠ Oops! Unexpected Error Occured. 😟", ONE)
@@ -605,7 +604,7 @@ async def max_len_update_text (update: Update, context: ContextTypes.DEFAULT_TYP
         available_options = [1, 2048]
         
         #! "text-davinci-003" the max_token is 4096, while for other models it is 2048
-        curr_model = int(json.loads(get_user_setting_api(chat_id, sett='max_length')).get('settings'))
+        curr_model = int(json.loads(await get_user_setting_api(chat_id, sett='max_length')).get('settings'))
         if (curr_model == "text-davinci-003"): available_options[1] = 4096
         
         if (available_options[0] <= int(new_val) <= available_options[1]):
@@ -622,7 +621,7 @@ async def best_of_update (update: Update, context: ContextTypes.DEFAULT_TYPE):
     new_val = update['callback_query']['data']
     
     #! best_of must be greater than n.
-    n_curr_val = int(json.loads(get_user_setting_api(chat_id, sett='n')).get('settings'))
+    n_curr_val = int(json.loads(await get_user_setting_api(chat_id, sett='n')).get('settings'))
     if (int(new_val) < n_curr_val):
         return await comd_try_again(update, f"⚠ best_of must be greater than n ({n_curr_val})", EIGHT)
 
@@ -639,7 +638,7 @@ async def best_of_update_text (update: Update, context: ContextTypes.DEFAULT_TYP
         available_options = [1,20]
         
         #! best_of must be greater than n.
-        n_curr_val = int(json.loads(get_user_setting_api(chat_id, sett='n')).get('settings'))
+        n_curr_val = int(json.loads(await get_user_setting_api(chat_id, sett='n')).get('settings'))
         if (int(new_val) < n_curr_val):
             return await comd_try_again(update, f"⚠ best_of must be greater than n ({n_curr_val})", EIGHT, True)
         
@@ -657,7 +656,7 @@ async def n_update (update: Update, context: ContextTypes.DEFAULT_TYPE):
     new_val = update['callback_query']['data']
     
     #! n must be smaller than best_of.
-    b_curr_val = int(json.loads(get_user_setting_api(chat_id, sett='best_of')).get('settings'))
+    b_curr_val = int(json.loads(await get_user_setting_api(chat_id, sett='best_of')).get('settings'))
     if (int(new_val) > b_curr_val):
         return await comd_try_again(update, f"⚠ n must be smaller than best_of ({b_curr_val})", NINE)
 
@@ -674,7 +673,7 @@ async def n_update_text (update: Update, context: ContextTypes.DEFAULT_TYPE):
         available_options = [1,20]
         
         #! n must be smaller than best_of.
-        b_curr_val = int(json.loads(get_user_setting_api(chat_id, sett='best_of')).get('settings'))
+        b_curr_val = int(json.loads(await get_user_setting_api(chat_id, sett='best_of')).get('settings'))
         if (int(new_val) > b_curr_val):
             return await comd_try_again(update, f"⚠ n must be smaller than best_of ({b_curr_val})", NINE, True)
         
@@ -701,7 +700,7 @@ async def stop_update_text (update: Update, context: ContextTypes.DEFAULT_TYPE):
 #? Display User's Current Settings
 async def CurrentSettings (update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = str(update.callback_query.from_user.id)
-    data = json.loads(get_user_setting_api(chat_id)).get('settings')
+    data = json.loads(await get_user_setting_api(chat_id)).get('settings')
     message = ""
     for key in data.keys():
         if (key=='num_openai_req' or key=='last_openai_req' or key=='total_queries' or key=='chat_id' or key=='echo'): continue
@@ -714,7 +713,7 @@ async def CurrentSettings (update: Update, context: ContextTypes.DEFAULT_TYPE):
 #? Fall back to Default Settings
 async def default (update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = str(update.callback_query.from_user.id)
-    statusCode = update_setting_api(chat_id)
+    statusCode = await update_setting_api(chat_id)
     msg = "✅ Done! Setting changed to default!"
     if statusCode != 201:
         logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', chat_id, "Error while falling back to defualt settings")

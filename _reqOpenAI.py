@@ -9,7 +9,7 @@ from ChatAPI_req import *
 api_key = config('OPENAI_API_KEY')
     
 #? Check if user don't send OpenAI requests more than max limit
-def check_req_validity(data, chat_id):
+async def check_req_validity(data, chat_id):
     req_limit = 50
     status = False
     
@@ -29,7 +29,7 @@ def check_req_validity(data, chat_id):
         settings["num_openai_req"] = str(int(data.get('num_openai_req')) + 1)
         status = True
     
-    update_setting_api(chat_id, settings)
+    await update_setting_api(chat_id, settings)
     
     return status
 
@@ -163,13 +163,13 @@ async def request_completions(user_text, chat_id, data, is_defualt=False):
 #? Generate Text Completion
 async def send_req_openai_chat (update: Update, user_text, chat_id, isInlineReq):
     #* save user queries
-    queryDB_api (chat_id, user_text, "chat")
+    await queryDB_api (chat_id, user_text, "chat")
     
     #* Get user settings
-    data = json.loads(get_user_setting_api(chat_id)).get('settings')
+    data = json.loads(await get_user_setting_api(chat_id)).get('settings')
     
     #* Check if user can send OpenAI request
-    status = check_req_validity(data, chat_id)
+    status = await check_req_validity(data, chat_id)
     
     prob_file_name = None
     if status:
@@ -221,13 +221,13 @@ async def request_image(user_text, chat_id):
 #? Image Generation
 async def send_req_openai_image (update: Update, user_text, chat_id, isInlineReq):
     #* save user queries
-    queryDB_api (chat_id, user_text, "image")
+    await queryDB_api (chat_id, user_text, "image")
     
     #* Get user settings
-    data = json.loads(get_user_setting_api(chat_id)).get('settings')
+    data = json.loads(await get_user_setting_api(chat_id)).get('settings')
     
     #* Check if user can send OpenAI request
-    status = check_req_validity(data, chat_id)
+    status = await check_req_validity(data, chat_id)
     
     if status:
         #* Query Response

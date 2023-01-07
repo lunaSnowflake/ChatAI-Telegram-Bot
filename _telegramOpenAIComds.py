@@ -106,7 +106,7 @@ async def max_length (update: Update, context: ContextTypes.DEFAULT_TYPE):
     available_options = [1, 2048]
     
     #? "text-davinci-003" the max_token is 4096, while for other models it is 2048
-    curr_model = json.loads(get_user_setting_api(chat_id, sett='model')).get('settings')
+    curr_model = json.loads(await get_user_setting_api(chat_id, sett='model')).get('settings')
     if (curr_model == "text-davinci-003"): available_options[1] = 4096
     
     await input_commands_int (update, available_options)

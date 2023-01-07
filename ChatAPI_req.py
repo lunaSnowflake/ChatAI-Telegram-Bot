@@ -1,40 +1,13 @@
 from datetime import datetime
 import requests
+import aiohttp
 from decouple import config
 import json
 
 
 # ***********************************************************User Info****************************************************************
-'''#**************ASYNC version************
-async def chat_ai_userinfo2():
-    import json
-    from decouple import config
-    import aiohttp
-    
-    api_endpoint = "https://2ksakimfoa.execute-api.ap-northeast-1.amazonaws.com/ChatAIAPI/userinfo/7064970"
-
-    headers = {
-        'Content-Type': 'application/json'
-    }
-    payload = json.dumps({
-        "chat_id": "87896986",
-        "type": "jia",
-        "username": "jia",
-        "first_name": "jia",
-        "last_name": "jia",
-        "time": "jia"
-    })
-        
-    # Create an async session
-    async with aiohttp.ClientSession() as session:
-        # Make the request to the API using the session's post() method
-        async with session.post(api_endpoint, headers=headers, data=payload) as response:
-            # Check the status code of the response
-            print(await response.text())
-            print(response.status)'''
-
 #? Get User Info
-def new_user_api (update, chat_id, try_again=False):
+async def new_user_api (update, chat_id, try_again=False):
     api_endpoint = f"https://2ksakimfoa.execute-api.ap-northeast-1.amazonaws.com/ChatAIAPI/userinfo/{chat_id}"
 
     authkey = config("CHATAI_API_AUTH")
@@ -64,35 +37,40 @@ def new_user_api (update, chat_id, try_again=False):
             "time": str(datetime.now())
         })
 
-    response = requests.request("POST", api_endpoint, headers=headers, data=UserInfo)
-    
-    if response.status_code == 400 and not try_again:
-        return new_user_api (update, chat_id, try_again=True)
-    
-    return response.status_code
+    # Create an async session
+    async with aiohttp.ClientSession() as session:
+        # Make the request to the API using the session's post() method
+        async with session.post(api_endpoint, headers=headers, data=UserInfo) as response:
+            # Check the status code of the response
+            if response.status == 400 and not try_again:
+                return await new_user_api (update, chat_id, try_again=True)
+
+            return response.status
 
 # ***********************************************************User Settings****************************************************************
 #? Get User Setting(s)
-def get_user_setting_api (chat_id, sett=None):
+async def get_user_setting_api (chat_id, sett=None):
     if sett is None:
         # Get All Settings
-        url = f"https://2ksakimfoa.execute-api.ap-northeast-1.amazonaws.com/ChatAIAPI/usersettings?chat_id={chat_id}"
+        api_endpoint = f"https://2ksakimfoa.execute-api.ap-northeast-1.amazonaws.com/ChatAIAPI/usersettings?chat_id={chat_id}"
     else:
         # Get only Specific Setting
-        url = f"https://2ksakimfoa.execute-api.ap-northeast-1.amazonaws.com/ChatAIAPI/usersettings?chat_id={chat_id}&setting={sett}"
+        api_endpoint = f"https://2ksakimfoa.execute-api.ap-northeast-1.amazonaws.com/ChatAIAPI/usersettings?chat_id={chat_id}&setting={sett}"
     
     authkey = config("CHATAI_API_AUTH")
     headers = {
         'Authorization': authkey
     }
-
-    response = requests.request("GET", url, headers=headers)
-
-    return response.text
+    
+    # Create an async session
+    async with aiohttp.ClientSession() as session:
+        # Make the request to the API using the session's get() method
+        async with session.get(api_endpoint, headers=headers) as response:
+            return await response.text()
 
 #? Add new user settings(default)
-def new_setting_api (chat_id):
-    url = f"https://2ksakimfoa.execute-api.ap-northeast-1.amazonaws.com/ChatAIAPI/usersettings?chat_id={chat_id}"
+async def new_setting_api (chat_id):
+    api_endpoint = f"https://2ksakimfoa.execute-api.ap-northeast-1.amazonaws.com/ChatAIAPI/usersettings?chat_id={chat_id}"
    
     authkey = config("CHATAI_API_AUTH")
     headers = {
@@ -100,13 +78,15 @@ def new_setting_api (chat_id):
         'Authorization': authkey
     }
     
-    response = requests.request("POST", url, headers=headers)
-
-    return response.status_code
+    # Create an async session
+    async with aiohttp.ClientSession() as session:
+        # Make the request to the API using the session's post() method
+        async with session.post(api_endpoint, headers=headers) as response:
+            return response.status
 
 #? update user settings
-def update_setting_api (chat_id, settings = {}):
-    url = f"https://2ksakimfoa.execute-api.ap-northeast-1.amazonaws.com/ChatAIAPI/usersettings?chat_id={chat_id}"
+async def update_setting_api (chat_id, settings = {}):
+    api_endpoint = f"https://2ksakimfoa.execute-api.ap-northeast-1.amazonaws.com/ChatAIAPI/usersettings?chat_id={chat_id}"
 
     payload = json.dumps(settings)      # if settings are empty -> fall back to default settings
     
@@ -115,14 +95,16 @@ def update_setting_api (chat_id, settings = {}):
         'Content-Type': 'application/json',
         'Authorization': authkey
     }
-
-    response = requests.request("PUT", url, headers=headers, data=payload)
-
-    return response.status_code
+    
+    # Create an async session
+    async with aiohttp.ClientSession() as session:
+        # Make the request to the API using the session's put() method
+        async with session.put(api_endpoint, headers=headers, data=payload) as response:
+            return response.status
 
 #? Add user query
-def queryDB_api (chat_id, user_text, type):
-    url = f"https://2ksakimfoa.execute-api.ap-northeast-1.amazonaws.com/ChatAIAPI/userquery"
+async def queryDB_api (chat_id, user_text, type):
+    api_endpoint = f"https://2ksakimfoa.execute-api.ap-northeast-1.amazonaws.com/ChatAIAPI/userquery"
 
     payload ={
         "chat_id": chat_id,
@@ -138,10 +120,11 @@ def queryDB_api (chat_id, user_text, type):
         'Content-Type': 'application/json',
         'Authorization': authkey
     }
-    
-    response = requests.request("POST", url, headers=headers, data=payload)
-
-    return response.status_code
+    # Create an async session
+    async with aiohttp.ClientSession() as session:
+        # Make the request to the API using the session's post() method
+        async with session.post(api_endpoint, headers=headers, data=payload) as response:
+            return response.status
 
 # settings = {
 #         "model": "text-davinci-003"
