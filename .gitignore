@@ -5,8 +5,8 @@ tempCodeRunnerFile.py
 _QueryDB.json
 _userSettings.json
 _usersInfo.json
-_Commands.json
 *.html
 test*
 *copy.py
 .vscode/
+ChatAI_conversation

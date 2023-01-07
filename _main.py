@@ -840,7 +840,7 @@ async def error_han(update, context):
 ##******************************************************* MAIN FUNCTION ******************************************************
 def main():
     #* By using Persistence, it is possible to keep inline buttons usable
-    persistence = PicklePersistence(filepath='AysncChatAI_conv')
+    persistence = PicklePersistence(filepath='ChatAI_conversation')
     application = Application.builder().token(BOT_TOKEN).persistence(persistence).build()
     
     #* Send Anouncement to all users!

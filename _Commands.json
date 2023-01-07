@@ -1,0 +1,27 @@
+{
+    "BotCommands":
+        {
+            "start": ["Restart The Bot", [""]],
+            "chat" : ["Start Chatting With OpenAI", [""]],
+            "help" : ["Get Help", [""]],
+            "settings" : ["Change Your Settings", [""]],
+            "curr_set" : ["Check Your Current Settings", [""]],
+            "default" : ["Fall Back To Default Settings", [""]],
+            "commands" : ["Get All OpenAI Commands", [""]],
+            "contact" : ["Connect With Me!", [""]]
+        },
+    "OpenAICommands":
+        {
+            "model" : ["The model which will generate the completion.", ["text-davinci-003", "text-curie-001", "text-babbage-001", "text-ada-001"]],
+            "temperature" : ["Control Randomness.", [0, 1]],
+            "max_length" : ["Maximum number of tokens to generate.", [1, 2048]],
+            "stop" : ["n sequences where the API will stop generating further tokens.", [""]],
+            "top_p" : ["Top probability Tokens.", [0,1]],
+            "frequency_penalty" : ["Decreasing the model's likelihood to repeat the same line verbatim.", [-2,2]],
+            "presence_penalty" : ["Increasing the model's likelihood to talk about new topics.", [-2,2]],
+            "best_of" : ["Generate multiple completion on the server:side and return only the best.", [1,20]],
+            "n" : ["How many completions to generate for each prompt.", [1,20]],
+            "gen_probs" : ["Generate a full spectrum probabilities of tokens.", ["True", "False"]],
+            "echo" : ["Echo back the prompt in addition to the completion.", ["True", "False"]]
+        }
+}
