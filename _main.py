@@ -193,7 +193,7 @@ async def new_user (update: Update):
 #? Used when /start or any random user message is send -- Text Message
 async def BotOptions (update: Update, context: ContextTypes.DEFAULT_TYPE):
     #* PROMPT
-    await update.message.reply_text("Choose What You Would Like To Do? 😀", InlineKeyboardMarkup(Main_Menu_Buttons))
+    await update.message.reply_text("Choose What You Would Like To Do? 😀", reply_markup=InlineKeyboardMarkup(Main_Menu_Buttons))
     #* Un-pin all messages from chat
     chat_id = str(update.message.from_user.id)
     await bot.unpin_all_chat_messages(chat_id=chat_id)
@@ -204,7 +204,7 @@ async def BotOptions (update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def BotOptionsCallBack (update: Update, context: ContextTypes.DEFAULT_TYPE):
     #* PROMPT
     await update.callback_query.answer()
-    await update.callback_query.edit_message_text("Choose What You Would Like To Do? 😀", InlineKeyboardMarkup(Main_Menu_Buttons))
+    await update.callback_query.edit_message_text("Choose What You Would Like To Do? 😀", reply_markup=InlineKeyboardMarkup(Main_Menu_Buttons))
     #* Un-pin all messages from chat
     chat_id = str(update.callback_query.from_user.id)
     await bot.unpin_all_chat_messages(chat_id=chat_id)
@@ -215,7 +215,7 @@ async def BotOptionsCallBack (update: Update, context: ContextTypes.DEFAULT_TYPE
 async def BotOptionsCallApart (update: Update):
     #* PROMPT
     await update.callback_query.answer()
-    await update.callback_query.message.reply_text("Choose What You Would Like To Do? 😀", InlineKeyboardMarkup(Main_Menu_Buttons))
+    await update.callback_query.message.reply_text("Choose What You Would Like To Do? 😀", reply_markup=InlineKeyboardMarkup(Main_Menu_Buttons))
     #* Un-pin all messages from chat
     chat_id = str(update.callback_query.from_user.id)
     await bot.unpin_all_chat_messages(chat_id=chat_id)
@@ -398,18 +398,23 @@ async def TerminateOpenAI (update: Update, context: ContextTypes.DEFAULT_TYPE):
     return MAIN
     
 #? Settings
-async def settings (update: Update, isText=False):
+async def settings (update: Update, context: ContextTypes.DEFAULT_TYPE, isText=False):
     #* Prompt Settings Menu to User
     inline_markup = InlineKeyboardMarkup(Settings_Buttons)
+    msg = '''
+Select the setting, you want to Change.
+ℹ <b>Remember:</b> It'll affect your Text Completion.
+Use <b>Get Info</b> to learn more.
+'''
     if (not isText):            # When called from Callback -- replace previous prompt
         await update.callback_query.answer()
-        await update.callback_query.edit_message_text("Select the setting, you want to Change.", reply_markup=inline_markup)
+        await update.callback_query.edit_message_text(msg, reply_markup=inline_markup, parse_mode="HTML")
     else:                       # When called from _text() functions
         try:
-            await update.message.reply_text("Select the setting, you want to Change.", reply_markup=inline_markup)
+            await update.message.reply_text(msg, reply_markup=inline_markup, parse_mode="HTML")
         except:                 # When called from Callback -- make new prompt
             await update.callback_query.answer()
-            await update.callback_query.message.reply_text("Select the setting, you want to Change.", reply_markup=inline_markup)
+            await update.callback_query.message.reply_text(msg, reply_markup=inline_markup, parse_mode="HTML")
     #* Tell ConversationHandler that we're in state `SETTINGS` now
     return SETTINGS
 
@@ -433,7 +438,7 @@ async def comd_try_again (update: Update, text, callback_val, isText=False):
     return SETTINGS
 
 #? Update User Settings
-async def Update_Command_Value (update: Update, chat_id, new_val, comd, callback_val, isText=False):
+async def Update_Command_Value (update: Update, context: ContextTypes.DEFAULT_TYPE, chat_id, new_val, comd, callback_val, isText=False):
     #* Update user's settings
     setts = {comd: new_val}                                      #******** Update comd's value **********
     statusCode = await update_setting_api(chat_id, setts)
@@ -442,10 +447,10 @@ async def Update_Command_Value (update: Update, chat_id, new_val, comd, callback
         if (not isText):            # When called from Callback -- replace previous prompt
             await update.callback_query.answer()
             await update.callback_query.edit_message_text(text = f"✅ Done! {comd} changed to: {new_val}")
-            return await settings (update)           # Call settings and show Settings Menu
+            return await settings (update, context)           # Call settings and show Settings Menu
         else:                       # When called from _text() functions
             await update.message.reply_text(text = f"✅ Done! {comd} changed to: {new_val}")
-            return await settings (update, True)     # Call settings and show Settings Menu
+            return await settings (update, context, True)     # Call settings and show Settings Menu
     else:
         logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', chat_id, "setting could not be updated")
         return await comd_try_again(update, "⚠ Oops! Unexpected Error Occured. 😟", callback_val, isText)
@@ -466,7 +471,7 @@ async def model_update (update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return await comd_try_again(update, "⚠ Oops! Unexpected Error Occured. 😟", ONE)
 
     #* Update Model
-    return await Update_Command_Value (update, chat_id, new_val, 'model', "⚠ Oops! Unexpected Error Occured. 😟", ONE)
+    return await Update_Command_Value (update, context, chat_id, new_val, 'model', "⚠ Oops! Unexpected Error Occured. 😟", ONE)
 
 #? When Model via User Text Input
 async def model_update_text (update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -479,7 +484,7 @@ async def gen_probs_update (update: Update, context: ContextTypes.DEFAULT_TYPE):
     new_val = True if (update['callback_query']['data']=="True") else False
     
     #* Update Gen_Probs
-    return await Update_Command_Value (update, chat_id, new_val, 'gen_probs', TEN)
+    return await Update_Command_Value (update, context, chat_id, new_val, 'gen_probs', TEN)
 
 #? When Gen_Probs via User Text Input
 async def gen_probs_update_text (update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -492,7 +497,7 @@ async def temp_update (update: Update, context: ContextTypes.DEFAULT_TYPE):
     new_val = update['callback_query']['data']
     
     #* Update Temperature
-    return await Update_Command_Value (update, chat_id, new_val, 'temperature', TWO)
+    return await Update_Command_Value (update, context, chat_id, new_val, 'temperature', TWO)
 
 #? Update Temperature via User Text Input      
 async def temp_update_text (update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -507,7 +512,7 @@ async def temp_update_text (update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if (available_options[0] <= new_val <= available_options[1]):
         #* Update Temperature
-        return await Update_Command_Value (update, chat_id, str(new_val), 'temperature', TWO, isText=True)
+        return await Update_Command_Value (update, context, chat_id, str(new_val), 'temperature', TWO, isText=True)
     else:
         return await comd_try_again(update, f"❗ Value must be between {available_options[0]} and {available_options[1]}", TWO, True)
 
@@ -517,7 +522,7 @@ async def top_p_update (update: Update, context: ContextTypes.DEFAULT_TYPE):
     new_val = update['callback_query']['data']
     
     #* Update Top_P
-    return await Update_Command_Value (update, chat_id, new_val, 'top_p', FIVE)
+    return await Update_Command_Value (update, context, chat_id, new_val, 'top_p', FIVE)
 
 #? Update Top_P via User Text Input
 async def top_p_update_text (update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -532,7 +537,7 @@ async def top_p_update_text (update: Update, context: ContextTypes.DEFAULT_TYPE)
         
     if (available_options[0] <= new_val <= available_options[1]):
         #* Update Top_P
-        return await Update_Command_Value (update, chat_id, str(new_val), 'top_p', FIVE, isText=True)
+        return await Update_Command_Value (update, context, chat_id, str(new_val), 'top_p', FIVE, isText=True)
     else:
         return await comd_try_again (update, f"❗ Value must be between {available_options[0]} and {available_options[1]}", FIVE, True)
 
@@ -542,7 +547,7 @@ async def freq_penal_update (update: Update, context: ContextTypes.DEFAULT_TYPE)
     new_val = update['callback_query']['data']
     
     #* Update Frequency_Penalty
-    return await Update_Command_Value (update, chat_id, new_val, 'frequency_penalty', SIX)
+    return await Update_Command_Value (update, context, chat_id, new_val, 'frequency_penalty', SIX)
 
 #? Update Frequency_Penalty via User Text Input   
 async def freq_penal_update_text (update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -557,7 +562,7 @@ async def freq_penal_update_text (update: Update, context: ContextTypes.DEFAULT_
         
     if (available_options[0] <= new_val <= available_options[1]):
         #* Update Frequency_Penalty
-        return await Update_Command_Value (update, chat_id, str(new_val), 'frequency_penalty', SIX, isText=True)
+        return await Update_Command_Value (update, context, chat_id, str(new_val), 'frequency_penalty', SIX, isText=True)
     else:
         return await comd_try_again(update, f"❗ Value must be between {available_options[0]} and {available_options[1]}", SIX, True)
 
@@ -567,7 +572,7 @@ async def pres_penal_update (update: Update, context: ContextTypes.DEFAULT_TYPE)
     new_val = update['callback_query']['data']
     
     #* Update Presence_Penalty
-    return await Update_Command_Value (update, chat_id, new_val, 'presence_penalty', SEVEN)
+    return await Update_Command_Value (update, context, chat_id, new_val, 'presence_penalty', SEVEN)
 
 #? Update Presence_Penalty via User Text Input 
 async def pres_penal_update_text (update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -582,7 +587,7 @@ async def pres_penal_update_text (update: Update, context: ContextTypes.DEFAULT_
         
     if (available_options[0] <= new_val <= available_options[1]):
         #* Update Presence_Penalty
-        return await Update_Command_Value (update, chat_id, str(new_val), 'presence_penalty', SEVEN, isText=True)
+        return await Update_Command_Value (update, context, chat_id, str(new_val), 'presence_penalty', SEVEN, isText=True)
     else:
         return await comd_try_again (update, f"❗ Value must be between {available_options[0]} and {available_options[1]}", SEVEN, True)
 
@@ -592,7 +597,7 @@ async def max_len_update (update: Update, context: ContextTypes.DEFAULT_TYPE):
     new_val = update['callback_query']['data']
     
     #* Update Max_Length
-    return await Update_Command_Value (update, chat_id, new_val, 'max_length', THREE)
+    return await Update_Command_Value (update, context, chat_id, new_val, 'max_length', THREE)
 
 #? Update Max_Length via User Text Input 
 async def max_len_update_text (update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -609,7 +614,7 @@ async def max_len_update_text (update: Update, context: ContextTypes.DEFAULT_TYP
         
         if (available_options[0] <= int(new_val) <= available_options[1]):
             #* Update Max_Length
-            return await Update_Command_Value (update, chat_id, str(new_val), 'max_length', THREE, isText=True)
+            return await Update_Command_Value (update, context, chat_id, str(new_val), 'max_length', THREE, isText=True)
         else:
             return await comd_try_again(update, f"❗ Value must be between {available_options[0]} and {available_options[1]}", THREE, True)
     else:
@@ -626,7 +631,7 @@ async def best_of_update (update: Update, context: ContextTypes.DEFAULT_TYPE):
         return await comd_try_again(update, f"⚠ best_of must be greater than n ({n_curr_val})", EIGHT)
 
     #* Update Best_Of
-    return await Update_Command_Value (update, chat_id, new_val, 'best_of', EIGHT)
+    return await Update_Command_Value (update, context, chat_id, new_val, 'best_of', EIGHT)
 
 #? Update Best_Of via User Text Input    
 async def best_of_update_text (update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -644,7 +649,7 @@ async def best_of_update_text (update: Update, context: ContextTypes.DEFAULT_TYP
         
         if (available_options[0] <= int(new_val) <= available_options[1]):
             #* Update Best_Of
-            return await Update_Command_Value (update, chat_id, str(new_val), 'best_of', EIGHT, isText=True)
+            return await Update_Command_Value (update, context, chat_id, str(new_val), 'best_of', EIGHT, isText=True)
         else:
             return await comd_try_again(update, f"❗ Value must be between {available_options[0]} and {available_options[1]}", EIGHT, True)
     else:
@@ -661,7 +666,7 @@ async def n_update (update: Update, context: ContextTypes.DEFAULT_TYPE):
         return await comd_try_again(update, f"⚠ n must be smaller than best_of ({b_curr_val})", NINE)
 
     #* Update N
-    return await Update_Command_Value (update, chat_id, new_val, 'n', NINE)
+    return await Update_Command_Value (update, context, chat_id, new_val, 'n', NINE)
 
 #? Update N via User Text Input
 async def n_update_text (update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -679,7 +684,7 @@ async def n_update_text (update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         if (available_options[0] <= int(new_val) <= available_options[1]):
             #* Update N
-            return await Update_Command_Value (update, chat_id, str(new_val), 'n', NINE, isText=True)
+            return await Update_Command_Value (update, context, chat_id, str(new_val), 'n', NINE, isText=True)
         else:
             return await comd_try_again(update, f"❗ Value must be between {available_options[0]} and {available_options[1]}", NINE, True)
     else:
@@ -693,7 +698,7 @@ async def stop_update_text (update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if (len(new_val) <= 4):
         #* Update Stop
-        return await Update_Command_Value (update, chat_id, str(new_val), 'stop', FOUR, isText=True)
+        return await Update_Command_Value (update, context, chat_id, str(new_val), 'stop', FOUR, isText=True)
     else:
         return await comd_try_again(update, "❗ Only upto 4 stop sequences are allowed!", FOUR, True)
 
@@ -728,6 +733,7 @@ async def commands (update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
     await update.callback_query.edit_message_text(f'''
 What Settings Do?
+ℹ Remember it will affect your Text Completion.
 
 {COM_TXT[1]}
 Select <b>Help</b> to know more.
@@ -736,7 +742,7 @@ Select <b>Help</b> to know more.
         , parse_mode='HTML'
 )
     #* Show Settings Menu
-    return await settings(update, True)
+    return await settings (update, context, True)
 
 #? Display Contact Info
 async def contact (update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -947,7 +953,7 @@ def main():
     application.add_handler(InlineQueryHandler(inline_query_initial))
     
     #* Handle Errors
-    application.add_error_handler(error_han)
+    # application.add_error_handler(error_han)
     
     #* Open Bot to take commands
     # try:
@@ -977,7 +983,7 @@ def main():
     logger.info("Using polling.")
     application.run_polling()
 
-    application.idle()
+    # application.idle()
 
 #* Start the Bot
 if __name__ == '__main__':
