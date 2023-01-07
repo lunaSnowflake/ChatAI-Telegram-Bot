@@ -14,51 +14,45 @@ from telegram.ext import filters
 from telegram import Bot
 from telegram.ext import PicklePersistence
 from telegram.ext import Application
-
-import asyncio
+import os
+import html
+import traceback
 
 from _telegramOpenAIComds import *
-from _reqOpenAI import *
-from _BotInlineQuery import *
-# from _userSettings import *
-
-#! Bot API Key  -- using environment variable (from .env file) to avoid exposing the API key in the code
-BOT_TOKEN = config('TELE_BOT_API_KEY_2')
-bot = Bot(BOT_TOKEN)
-
-#* Global Variables
-COM_TXT = []
-COM_KEYS = []
-OPENAI_KEYS = []
+from _reqOpenAI import send_req_openai_chat, send_req_openai_image
+from _BotInlineQuery import inline_query_initial
 
 # Enable logging
 import logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(module)s - %(funcName)s - ln %(lineno)d - %(levelname)s - %(message)s',level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+#! Bot API Key  -- using environment variable (from .env file) to avoid exposing the API key in the code
+from decouple import config
+BOT_TOKEN = config('TELE_BOT_API_KEY_3')
+# BOT_TOKEN = config('TELE_BOT_API_KEY_2')
+bot = Bot(BOT_TOKEN)
+
+#* Global Variables
+COM_TXT = []
+
 #? Load The Command text that will used later by /help, /commands, etc
 def load_commands_text():
-    import json
-    global OPENAI_KEYS, COM_KEYS, COM_TXT
+    global COM_TXT
     with open('_Commands.json', 'r', encoding='utf-8') as f:
         my_data = json.load(f)
         MainComm = my_data.keys()
-        OPENAI_KEYS = list(my_data['OpenAICommands'].keys())
-        COM_KEYS = list(my_data['BotCommands'].keys())
-        for i, Mkey in enumerate(MainComm): 
+        for Mkey in MainComm: 
             Comm = my_data[Mkey].keys()
-            nkeys = len(Comm)
             text = ''
             for key in Comm:
-                nkeys -= 1
-                text = text + '• ' + '<b>' + key.title() + '</b>' + ' - ' + my_data[Mkey][key][0]
-                if nkeys != 0:
-                    text = text + '\n'
+                if key == "echo": continue
+                text = text + '• ' + '<b>' + key.title() + '</b>' + ' - ' + my_data[Mkey][key][0] + '\n'
             COM_TXT.append(text)
 
 #? Add To User Info to Database (if new-user)
 async def new_user (update: Update):
-    chat_id = str(update.message.chat_id)
+    chat_id = str(update.message.from_user.id)
     try:
         #* User DataBase
         import json
@@ -167,37 +161,63 @@ Settings_Buttons = [
         InlineKeyboardButton("🏠 Main Menu", callback_data=str(CANCELOPT))
     ]
 ]
+
+
+#? Add To User Info to Database (if new-user)
+async def new_user (update: Update):
+    chat_id = str(update.message.from_user.id)
+    # statusCode = new_user_api(update, chat_id, withnullinfo=False)
+    statusCode = new_user_api(update, chat_id)
     
+    #* Add New User
+    isnewlyadded = False
+    if statusCode == 201:               # User Added
+        isnewlyadded = True
+    elif statusCode == 409:             # User Already Exist
+        isnewlyadded = False
+    else:                               # Other Errors
+        return False
+    
+    if isnewlyadded:
+        await update.message.reply_text(f"Welcome {update.message.chat.first_name}! 😀")
+        #* Add Defualt setting for new User
+        statusCode = new_setting_api(chat_id)
+        if statusCode == 201:           # User Setting Added
+            return True
+        else:
+            return False
+    else:
+        await update.message.reply_text(f"Welcome Back {update.message.chat.first_name}! 😀")
+    
+    return True
+  
 #? Used when /start or any random user message is send -- Text Message
 async def BotOptions (update: Update, context: ContextTypes.DEFAULT_TYPE):
-    #* Show Main Menu
-    inline_markup = InlineKeyboardMarkup(Main_Menu_Buttons)
-    await update.message.reply_text("Choose What You Would Like To Do? 😀", reply_markup=inline_markup)
-    #? Un-pin all messages from chat
-    chat_id = str(update.message.chat_id)
+    #* PROMPT
+    await update.message.reply_text("Choose What You Would Like To Do? 😀", InlineKeyboardMarkup(Main_Menu_Buttons))
+    #* Un-pin all messages from chat
+    chat_id = str(update.message.from_user.id)
     await bot.unpin_all_chat_messages(chat_id=chat_id)
     #* Tell ConversationHandler that we're in state `MAIN` now
     return MAIN
 
 #? When Setting Canceled is pressed -- Callback
 async def BotOptionsCallBack (update: Update, context: ContextTypes.DEFAULT_TYPE):
-    #* Show Main Menu
-    inline_markup = InlineKeyboardMarkup(Main_Menu_Buttons)
+    #* PROMPT
     await update.callback_query.answer()
-    await update.callback_query.edit_message_text("Choose What You Would Like To Do? 😀", reply_markup=inline_markup)
-    #? Un-pin all messages from chat
+    await update.callback_query.edit_message_text("Choose What You Would Like To Do? 😀", InlineKeyboardMarkup(Main_Menu_Buttons))
+    #* Un-pin all messages from chat
     chat_id = str(update.callback_query.from_user.id)
     await bot.unpin_all_chat_messages(chat_id=chat_id)
     #* Tell ConversationHandler that we're in state `MAIN` now
     return MAIN
 
 #? Generate in separate message -- Callback
-async def BotOptionsCallApart (update: Update, context: ContextTypes.DEFAULT_TYPE):
-    #* Show Main Menu
-    inline_markup = InlineKeyboardMarkup(Main_Menu_Buttons)
+async def BotOptionsCallApart (update: Update):
+    #* PROMPT
     await update.callback_query.answer()
-    await update.callback_query.message.reply_text("Choose What You Would Like To Do? 😀", reply_markup=inline_markup)
-    #? Un-pin all messages from chat
+    await update.callback_query.message.reply_text("Choose What You Would Like To Do? 😀", InlineKeyboardMarkup(Main_Menu_Buttons))
+    #* Un-pin all messages from chat
     chat_id = str(update.callback_query.from_user.id)
     await bot.unpin_all_chat_messages(chat_id=chat_id)
     #* Tell ConversationHandler that we're in state `MAIN` now
@@ -212,7 +232,10 @@ async def start (update: Update, context: ContextTypes.DEFAULT_TYPE):
     if status:
         await update.message.reply_text(f'''
 Hello!, Welcome to <a href='https://chatai.typedream.app/'>ChatAI</a> 😊
-I can help you with Text Completion - This Bot is based on <a href='https://bit.ly/OpenAI_Introduction'>OpenAI</a>
+I can help you with :
+• Text Completion 🗨️
+• Image Generation 🎴
+This Bot is based on <a href='https://bit.ly/OpenAI_Introduction'>OpenAI</a>
 '''
             , disable_web_page_preview=True
             , parse_mode='HTML'
@@ -229,22 +252,24 @@ async def help (update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
     await update.callback_query.edit_message_text(f'''
 Hello there! 😀 
-<a href='https://chatai.typedream.app/'>ChatAI</a> is a Telegram Bot that can help you with Text Completion.
+<a href='https://chatai.typedream.app/'>ChatAI</a> is a Telegram Bot that can help you with:
+• Text Completion (ChatGPT3)
+• Image Generation (Dall-E 2)
 
-The Bot uses powerful <a href='https://bit.ly/OpenAI_Introduction'>OpenAI</a> and generates Text Completion right here in Telegram.
-<b>ChatAI is OpenAI but for Telegram.</b>
-
-• <b>Chat :</b> Start Chatting (Text Completion)
+• <b>Text Generation :</b> Start Text Completion!
+• <b>Image Generation :</b> Start Image Generation!
 • <b>Change Settings :</b> Alter Your Settings For Text Completion!
 • <b>Current Settings :</b> Check Your Settings For Text Completion!
 • <b>Default Settings :</b> Fall Back To Default Settings!
 • <b>Command Info :</b> Learn About Different Settings!
+
+More more info visit our page <a href='https://chatai.typedream.app/'>ChatAI</a>
 '''
         , disable_web_page_preview=True
         , parse_mode='HTML'
     )
     #* Show Main Menu
-    return await BotOptionsCallApart (update, context)
+    return await BotOptionsCallApart (update)
 
 #? When Chat is pressed
 async def chat (update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -265,7 +290,7 @@ async def chat (update: Update, context: ContextTypes.DEFAULT_TYPE):
         ["How to get famous?"]
     ]
     reply_markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
-    await update.callback_query.message.reply_text("• Try writting something like:\n<b>\"Write a tagline for an ice cream shop.\"</b>\n<a href='https://bit.ly/OpenAIPlay'>OpenAI Playground</a>", disable_web_page_preview=True, parse_mode='HTML', reply_markup=reply_markup)
+    await update.callback_query.message.reply_text("• Try writting something like:\n<b>\"Write a tagline for an ice cream shop.\"</b>", disable_web_page_preview=True, parse_mode='HTML', reply_markup=reply_markup)
     #* Tell ConversationHandler that we're in state `CHAT` now
     return CHAT
 
@@ -287,31 +312,24 @@ async def image (update: Update, context: ContextTypes.DEFAULT_TYPE):
         ["A sunlit indoor lounge area with a pool containing a flamingo."]
     ]
     reply_markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
-    await update.callback_query.message.reply_text("• Try writting something like:\n<b>\"A cute chow chow dog with birthday hat.\"</b>\n<a href='https://bit.ly/OpenAIPlay'>OpenAI Playground</a>", disable_web_page_preview=True, parse_mode='HTML', reply_markup=reply_markup)
+    await update.callback_query.message.reply_text("• Try writting something like:\n<b>\"A cute chow chow dog with birthday hat.\"</b>", disable_web_page_preview=True, parse_mode='HTML', reply_markup=reply_markup)
     #* Tell ConversationHandler that we're in state `IMAGE` now
     return IMAGE
 
 #? Chat Intialize
 async def chat_intial (update: Update, context: ContextTypes.DEFAULT_TYPE):
-    return await openai_intial (update, context, type=0)
+    return await openai_handler (update, context, type=0)
 #? Image Intialize
 async def image_intial (update: Update, context: ContextTypes.DEFAULT_TYPE):
-    return await openai_intial (update, context, type=1)
-
-#? OpenAI Intialize
-async def openai_intial (update: Update, context: ContextTypes.DEFAULT_TYPE, type=0):
-    #* Prompt Generate Message to User
-    gen_msg = await update.message.reply_text(
-        "Generating...",
-        reply_markup=ReplyKeyboardRemove(),
-    )
-    #* Call OpenAI Handler for futher instruction to API
-    return await openai_handler (update, context, gen_msg, type=type)
+    return await openai_handler (update, context, type=1)
 
 #? OpenAI Handler
-async def openai_handler (update: Update, context: ContextTypes.DEFAULT_TYPE, gen_msg, type=0):
+async def openai_handler (update: Update, context: ContextTypes.DEFAULT_TYPE, type=0):
+    #* Prompt "Generate..." Message to User
+    gen_msg = await update.message.reply_text("Generating...", reply_markup=ReplyKeyboardRemove())
+    #* Generate
     text = update.message.text
-    chat_id = str(update.message.chat_id)
+    chat_id = str(update.message.from_user.id)
     try:
         #* Send Chat OpenAI request
         if (type==0):
@@ -329,13 +347,11 @@ async def openai_handler (update: Update, context: ContextTypes.DEFAULT_TYPE, ge
                 if (prob_file != None):
                     with open(prob_file, 'rb') as doc:
                         await context.bot.send_document(chat_id, doc)
-                    import os
                     os.remove(prob_file)        # Delete Probability File
                 #* If user's first query of the day, give a Tip to change settings
-                with open('_userSettings.json', "r") as file:
-                    data = json.load(file)
-                if data[chat_id]['num_openai_req'] == 1:
-                    await update.message.reply_text("💡Tips:\n• You can change settings for Text Generation using 'Change Settings' from Main Menu\n• Use '🏠 Main Menu' from above pinned to go back")
+                num_openai_req = int(json.loads(get_user_setting_api (chat_id, sett='num_openai_req')).get('settings'))
+                if num_openai_req == 1:
+                    await update.message.reply_text("💡Tips:\n• You can change settings for Text Generation using 'Change Settings' from Main Menu.\n• Use '🏠 Main Menu' from above pinned to go back.")
         #* Send Image OpenAI request
         else:
             #* The maximum length is 1000 characters. (950 for buffer)
@@ -368,12 +384,9 @@ async def openai_handler (update: Update, context: ContextTypes.DEFAULT_TYPE, ge
 
 #? Terminate OpenAI and Show Main Menu
 async def TerminateOpenAI (update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.callback_query.answer()
     #* Prompt Terminate Message to User and **Remove any Reply-Keyboard**
-    gen_msg = await update.callback_query.message.reply_text(
-        "🏠 Going Back Home..😊",
-        reply_markup=ReplyKeyboardRemove(),
-    )
+    await update.callback_query.answer()
+    gen_msg = await update.callback_query.message.reply_text("🏠 Going Back Home..😊", reply_markup=ReplyKeyboardRemove())
     #* Un-pin all messages from chat -- the cancel message
     chat_id = str(update.callback_query.from_user.id)
     await bot.unpin_all_chat_messages(chat_id=chat_id)
@@ -381,18 +394,18 @@ async def TerminateOpenAI (update: Update, context: ContextTypes.DEFAULT_TYPE):
     await bot.delete_message(chat_id=gen_msg.chat_id, message_id=gen_msg.message_id)
     #* Show Main Menu
     inline_markup = InlineKeyboardMarkup(Main_Menu_Buttons)
-    await update.callback_query.message.reply_text("Choose What You Would Like To Do? 😀", reply_markup=inline_markup)
+    await update.callback_query.message.reply_text("What would you like to do? 😀", reply_markup=inline_markup)
     #* Tell ConversationHandler that we're in state `MAIN` now
     return MAIN
     
-#? Quick Settings
-async def settings (update: Update, context: ContextTypes.DEFAULT_TYPE, isText=False):
+#? Settings
+async def settings (update: Update, isText=False):
     #* Prompt Settings Menu to User
     inline_markup = InlineKeyboardMarkup(Settings_Buttons)
     if (not isText):            # When called from Callback -- replace previous prompt
         await update.callback_query.answer()
         await update.callback_query.edit_message_text("Select the setting, you want to Change.", reply_markup=inline_markup)
-    else:                     # When called from _text() functions
+    else:                       # When called from _text() functions
         try:
             await update.message.reply_text("Select the setting, you want to Change.", reply_markup=inline_markup)
         except:                 # When called from Callback -- make new prompt
@@ -402,7 +415,7 @@ async def settings (update: Update, context: ContextTypes.DEFAULT_TYPE, isText=F
     return SETTINGS
 
 #? Error occured while making change in Settings
-async def comd_try_again (update: Update, context: ContextTypes.DEFAULT_TYPE, text, callback_val, isText=False):
+async def comd_try_again (update: Update, text, callback_val, isText=False):
     #* Prompt Error and its Options
     inline_keyboard = [
         [
@@ -421,31 +434,22 @@ async def comd_try_again (update: Update, context: ContextTypes.DEFAULT_TYPE, te
     return SETTINGS
 
 #? Update User Settings
-async def Update_Command_Value (update: Update, context: ContextTypes.DEFAULT_TYPE, chat_id, new_val, comd, err_text, callback_val, isText=False):
-    #* Retrieve user's settings
-    filename = '_userSettings.json'
-    with open(filename, "r") as f:
-        data = json.load(f)
-    Backup_Data = data
-        
-    try:
-        data[chat_id][comd] = new_val                                    #******** Update comd's value **********
-        with open(filename, "w") as f:
-            json.dump(data, f, indent=4)
-        
+async def Update_Command_Value (update: Update, chat_id, new_val, comd, callback_val, isText=False):
+    #* Update user's settings
+    setts = {comd: new_val}                                      #******** Update comd's value **********
+    statusCode = update_setting_api(chat_id, setts)
+    
+    if statusCode == 201:        
         if (not isText):            # When called from Callback -- replace previous prompt
             await update.callback_query.answer()
             await update.callback_query.edit_message_text(text = f"✅ Done! {comd} changed to: {new_val}")
-            return await settings (update, context)           # Call settings and show Settings Menu
+            return await settings (update)           # Call settings and show Settings Menu
         else:                       # When called from _text() functions
             await update.message.reply_text(text = f"✅ Done! {comd} changed to: {new_val}")
-            return await settings (update, context, True)     # Call settings and show Settings Menu
-    except Exception as err:
-        logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', chat_id, str(err))
-        #! Incase any Error occurs, we don't lose our user data
-        with open(filename, "w") as f:
-            json.dump(Backup_Data, f, indent=4)
-        return await comd_try_again(update, context, err_text, callback_val, isText)
+            return await settings (update, True)     # Call settings and show Settings Menu
+    else:
+        logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', chat_id, "setting could not be updated")
+        return await comd_try_again(update, "⚠ Oops! Unexpected Error Occured. 😟", callback_val, isText)
 
 #? Update Model via Inline 
 async def model_update (update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -454,300 +458,271 @@ async def model_update (update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     #? "text-davinci-003" the max_token is 4096, while for other models it is 2048
     if (new_val != "text-davinci-003"):
-        curr_max_length = comd_val(chat_id, 'max_length')
-        if (curr_max_length[0] > 2048):            
-            try:
-                filename = '_userSettings.json'
-                with open(filename, "r") as f:
-                    data = json.load(f)
-                Backup_Data = data
-                data[chat_id]['max_length'] = 2048
-                with open(filename, "w") as f:
-                    json.dump(data, f, indent=4)
-            except Exception as err:
-                logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', chat_id, str(err))
-                with open(filename, "w") as f:                      #! Incase any Error occurs, we don't lose our user data
-                    json.dump(Backup_Data, f, indent=4)
-                return await comd_try_again(update, context, "⚠ Oops! Unexpected Error Occured. 😟", ONE)
+        curr_max_length = int(json.loads(get_user_setting_api(chat_id, sett='max_length')).get('settings'))
+        if (curr_max_length > 2048):
+            setts = {"max_length": "2048"}
+            statusCode = update_setting_api(chat_id, setts)
+            if statusCode != 201:
+                logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', chat_id, "During model updation max_length could not be updated")
+                return await comd_try_again(update, "⚠ Oops! Unexpected Error Occured. 😟", ONE)
 
     #* Update Model
-    return await Update_Command_Value (update, context, chat_id, new_val, 'model', "⚠ Oops! Unexpected Error Occured. 😟", ONE)
+    return await Update_Command_Value (update, chat_id, new_val, 'model', "⚠ Oops! Unexpected Error Occured. 😟", ONE)
 
 #? When Model via User Text Input
 async def model_update_text (update: Update, context: ContextTypes.DEFAULT_TYPE):
     #*Try Again when any text is entered for Model
-    return await comd_try_again(update, context, '❗ Choose from Options', ONE, True)
+    return await comd_try_again(update, '❗ Choose from Options', ONE, True)
 
 #? Update Gen_Probs via Inline
 async def gen_probs_update (update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = str(update.callback_query.from_user.id)
-    new_val = CANCELOPT if (update['callback_query']['data']==str(CANCELOPT)) else True if (update['callback_query']['data']=="True") else False
+    new_val = True if (update['callback_query']['data']=="True") else False
     
     #* Update Gen_Probs
-    return await Update_Command_Value (update, context, chat_id, new_val, 'gen_probs', "⚠ Oops! Unexpected Error Occured. 😟", TEN)
+    return await Update_Command_Value (update, chat_id, new_val, 'gen_probs', TEN)
 
 #? When Gen_Probs via User Text Input
 async def gen_probs_update_text (update: Update, context: ContextTypes.DEFAULT_TYPE):
     #*Try Again when any text is entered for Gen_Probs
-    return await comd_try_again(update, context, '❗ Choose from Options', TEN, True)
+    return await comd_try_again(update, '❗ Choose from Options', TEN, True)
 
 #? Update Temperature via Inline
 async def temp_update (update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = str(update.callback_query.from_user.id)
-    new_val = float(update['callback_query']['data'])
+    new_val = update['callback_query']['data']
     
     #* Update Temperature
-    return await Update_Command_Value (update, context, chat_id, new_val, 'temperature', "⚠ Oops! Unexpected Error Occured. 😟", TWO)
+    return await Update_Command_Value (update, chat_id, new_val, 'temperature', TWO)
 
 #? Update Temperature via User Text Input      
 async def temp_update_text (update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = str(update.message.chat_id)
+    chat_id = str(update.message.from_user.id)
     new_val = update.message.text
 
-    #* Retrieve temperature's range
-    with open('_Commands.json', 'r', encoding='utf-8') as f:
-        my_data = json.load(f)
-    available_options = my_data["OpenAICommands"]['temperature'][1]
-       
-    new_val = float(new_val)    # raise error if text
+    available_options = [0,1]
+    try:
+        new_val = float(new_val)    # raise error if text
+    except:
+        return await comd_try_again(update, f"❗ Value must be between {available_options[0]} and {available_options[1]}", TWO, True)
+    
     if (available_options[0] <= new_val <= available_options[1]):
         #* Update Temperature
-        return await Update_Command_Value (update, context, chat_id, new_val, 'temperature', "⚠ Oops! Unexpected Error Occured. 😟", TWO, True)
+        return await Update_Command_Value (update, chat_id, str(new_val), 'temperature', TWO, isText=True)
     else:
-        return await comd_try_again(update, context, f"❗ Value must be between {available_options[0]} and {available_options[1]}", TWO, True)
+        return await comd_try_again(update, f"❗ Value must be between {available_options[0]} and {available_options[1]}", TWO, True)
 
 #? Update Top_P via Inline
 async def top_p_update (update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = str(update.callback_query.from_user.id)
-    new_val = float(update['callback_query']['data'])
+    new_val = update['callback_query']['data']
     
     #* Update Top_P
-    return await Update_Command_Value (update, context, chat_id, new_val, 'top_p', "⚠ Oops! Unexpected Error Occured. 😟", FIVE)
+    return await Update_Command_Value (update, chat_id, new_val, 'top_p', FIVE)
 
 #? Update Top_P via User Text Input
 async def top_p_update_text (update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = str(update.message.chat_id)
+    chat_id = str(update.message.from_user.id)
     new_val = update.message.text
 
-    #* Retrieve top_p's range
-    with open('_Commands.json', 'r', encoding='utf-8') as f:
-        my_data = json.load(f)
-    available_options = my_data["OpenAICommands"]['top_p'][1]
+    available_options = [0,1]
+    try:
+        new_val = float(new_val)    # raise error if text
+    except:
+        return await comd_try_again(update, f"❗ Value must be between {available_options[0]} and {available_options[1]}", FIVE, True)
         
-    new_val = float(new_val)    # raise error if text
     if (available_options[0] <= new_val <= available_options[1]):
         #* Update Top_P
-        return await Update_Command_Value (update, context, chat_id, new_val, 'top_p', "⚠ Oops! Unexpected Error Occured. 😟", FIVE, True)
+        return await Update_Command_Value (update, chat_id, str(new_val), 'top_p', FIVE, isText=True)
     else:
-        return await comd_try_again(update, context, f"❗ Value must be between {available_options[0]} and {available_options[1]}", FIVE, True)
+        return await comd_try_again (update, f"❗ Value must be between {available_options[0]} and {available_options[1]}", FIVE, True)
 
 #? Update Frequency_Penalty via Inline
 async def freq_penal_update (update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = str(update.callback_query.from_user.id)
-    new_val = float(update['callback_query']['data'])
+    new_val = update['callback_query']['data']
     
     #* Update Frequency_Penalty
-    return await Update_Command_Value (update, context, chat_id, new_val, 'frequency_penalty', "⚠ Oops! Unexpected Error Occured. 😟", SIX)
+    return await Update_Command_Value (update, chat_id, new_val, 'frequency_penalty', SIX)
 
 #? Update Frequency_Penalty via User Text Input   
 async def freq_penal_update_text (update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = str(update.message.chat_id)
+    chat_id = str(update.message.from_user.id)
     new_val = update.message.text
 
-    #* Retrieve frequency_penalty's range
-    with open('_Commands.json', 'r', encoding='utf-8') as f:
-        my_data = json.load(f)
-    available_options = my_data["OpenAICommands"]['frequency_penalty'][1]
-       
-    new_val = float(new_val)    # raise error if text
+    available_options = [-2,2]        
+    try:
+        new_val = float(new_val)    # raise error if text
+    except:
+        return await comd_try_again(update, f"❗ Value must be between {available_options[0]} and {available_options[1]}", SIX, True)
+        
     if (available_options[0] <= new_val <= available_options[1]):
         #* Update Frequency_Penalty
-        return await Update_Command_Value (update, context, chat_id, new_val, 'frequency_penalty', "⚠ Oops! Unexpected Error Occured. 😟", SIX, True)
+        return await Update_Command_Value (update, chat_id, str(new_val), 'frequency_penalty', SIX, isText=True)
     else:
-        return await comd_try_again(update, context, f"❗ Value must be between {available_options[0]} and {available_options[1]}", SIX, True)
+        return await comd_try_again(update, f"❗ Value must be between {available_options[0]} and {available_options[1]}", SIX, True)
 
 #? Update Presence_Penalty via Inline  
 async def pres_penal_update (update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = str(update.callback_query.from_user.id)
-    new_val = float(update['callback_query']['data'])
+    new_val = update['callback_query']['data']
     
     #* Update Presence_Penalty
-    return await Update_Command_Value (update, context, chat_id, new_val, 'presence_penalty', "⚠ Oops! Unexpected Error Occured. 😟", SEVEN)
+    return await Update_Command_Value (update, chat_id, new_val, 'presence_penalty', SEVEN)
 
 #? Update Presence_Penalty via User Text Input 
 async def pres_penal_update_text (update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = str(update.message.chat_id)
+    chat_id = str(update.message.from_user.id)
     new_val = update.message.text
 
-    #* Retrieve presence_penalty's range
-    with open('_Commands.json', 'r', encoding='utf-8') as f:
-        my_data = json.load(f)
-    available_options = my_data["OpenAICommands"]['presence_penalty'][1]
+    available_options = [-2,2]
+    try:
+        new_val = float(new_val)    # raise error if text
+    except:
+        return await comd_try_again(update, f"❗ Value must be between {available_options[0]} and {available_options[1]}", SEVEN, True)
         
-    new_val = float(new_val)    # raise error if text
     if (available_options[0] <= new_val <= available_options[1]):
         #* Update Presence_Penalty
-        return await Update_Command_Value (update, context, chat_id, new_val, 'presence_penalty', "⚠ Oops! Unexpected Error Occured. 😟", SEVEN, True)
+        return await Update_Command_Value (update, chat_id, str(new_val), 'presence_penalty', SEVEN, isText=True)
     else:
-        return await comd_try_again(update, context, f"❗ Value must be between {available_options[0]} and {available_options[1]}", SEVEN, True)
+        return await comd_try_again (update, f"❗ Value must be between {available_options[0]} and {available_options[1]}", SEVEN, True)
 
 #? Update Max_Length via Inline
 async def max_len_update (update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = str(update.callback_query.from_user.id)
-    new_val = int(update['callback_query']['data'])
+    new_val = update['callback_query']['data']
     
     #* Update Max_Length
-    return await Update_Command_Value (update, context, chat_id, new_val, 'max_length', "⚠ Oops! Unexpected Error Occured. 😟", THREE)
+    return await Update_Command_Value (update, chat_id, new_val, 'max_length', THREE)
 
 #? Update Max_Length via User Text Input 
 async def max_len_update_text (update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = str(update.message.chat_id)
+    chat_id = str(update.message.from_user.id)
     new_val = update.message.text
     
     #* Check User's Value is Numeric (Not Float or Text)
     if new_val.isnumeric():
-        #* Retrieve max_length's range
-        with open('_Commands.json', 'r', encoding='utf-8') as f:
-            my_data = json.load(f)
-        available_options = my_data["OpenAICommands"]['max_length'][1]
+        available_options = [1, 2048]
         
         #! "text-davinci-003" the max_token is 4096, while for other models it is 2048
-        curr_model = comd_val(chat_id, 'model')
-        if (curr_model[0] == "text-davinci-003"): available_options[1] = 4096
+        curr_model = int(json.loads(get_user_setting_api(chat_id, sett='max_length')).get('settings'))
+        if (curr_model == "text-davinci-003"): available_options[1] = 4096
         
         if (available_options[0] <= int(new_val) <= available_options[1]):
             #* Update Max_Length
-            return await Update_Command_Value (update, context, chat_id, int(new_val), 'max_length', "⚠ Oops! Unexpected Error Occured. 😟", THREE, True)
+            return await Update_Command_Value (update, chat_id, str(new_val), 'max_length', THREE, isText=True)
         else:
-            return await comd_try_again(update, context, f"❗ Value must be between {available_options[0]} and {available_options[1]}", THREE, True)
+            return await comd_try_again(update, f"❗ Value must be between {available_options[0]} and {available_options[1]}", THREE, True)
     else:
-        return await comd_try_again(update, context, f"❗ Value must be Numeric!", THREE, True)
-
+        return await comd_try_again(update, f"❗ Value must be Numeric!", THREE, True)
+    
 #? Update Best_Of via Inline
 async def best_of_update (update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = str(update.callback_query.from_user.id)
-    new_val = int(update['callback_query']['data'])
+    new_val = update['callback_query']['data']
     
     #! best_of must be greater than n.
-    n_curr_val = comd_val (chat_id, 'n')[0]
+    n_curr_val = int(json.loads(get_user_setting_api(chat_id, sett='n')).get('settings'))
     if (int(new_val) < n_curr_val):
-        return await comd_try_again(update, context, f"⚠ best_of must be greater than n ({n_curr_val})", EIGHT)
+        return await comd_try_again(update, f"⚠ best_of must be greater than n ({n_curr_val})", EIGHT)
 
     #* Update Best_Of
-    return await Update_Command_Value (update, context, chat_id, new_val, 'best_of', "⚠ Oops! Unexpected Error Occured. 😟", EIGHT)
+    return await Update_Command_Value (update, chat_id, new_val, 'best_of', EIGHT)
 
 #? Update Best_Of via User Text Input    
 async def best_of_update_text (update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = str(update.message.chat_id)
+    chat_id = str(update.message.from_user.id)
     new_val = update.message.text
     
     #* Check User's Value is Numeric (Not Float or Text)
     if new_val.isnumeric():
-        #* Retrieve max_length's range
-        with open('_Commands.json', 'r', encoding='utf-8') as f:
-            my_data = json.load(f)
-        available_options = my_data["OpenAICommands"]['best_of'][1]
+        available_options = [1,20]
         
         #! best_of must be greater than n.
-        n_curr_val = comd_val (chat_id, 'n')[0]
+        n_curr_val = int(json.loads(get_user_setting_api(chat_id, sett='n')).get('settings'))
         if (int(new_val) < n_curr_val):
-            return await comd_try_again(update, context, f"⚠ best_of must be greater than n ({n_curr_val})", EIGHT, True)
+            return await comd_try_again(update, f"⚠ best_of must be greater than n ({n_curr_val})", EIGHT, True)
         
         if (available_options[0] <= int(new_val) <= available_options[1]):
             #* Update Best_Of
-            return await Update_Command_Value (update, context, chat_id, int(new_val), 'best_of', "⚠ Oops! Unexpected Error Occured. 😟", EIGHT, True)
+            return await Update_Command_Value (update, chat_id, str(new_val), 'best_of', EIGHT, isText=True)
         else:
-            return await comd_try_again(update, context, f"❗ Value must be between {available_options[0]} and {available_options[1]}", EIGHT, True)
+            return await comd_try_again(update, f"❗ Value must be between {available_options[0]} and {available_options[1]}", EIGHT, True)
     else:
-        return await comd_try_again(update, context, f"❗ Value must be Numeric!", EIGHT, True)
-
+        return await comd_try_again(update, f"❗ Value must be Numeric!", EIGHT, True)
+    
 #? Update N via Inline
 async def n_update (update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = str(update.callback_query.from_user.id)
-    new_val = int(update['callback_query']['data'])
+    new_val = update['callback_query']['data']
     
     #! n must be smaller than best_of.
-    b_curr_val = comd_val (chat_id, 'best_of')[0]
+    b_curr_val = int(json.loads(get_user_setting_api(chat_id, sett='best_of')).get('settings'))
     if (int(new_val) > b_curr_val):
-        return await comd_try_again(update, context, f"⚠ n must be smaller than best_of ({b_curr_val})", NINE)
+        return await comd_try_again(update, f"⚠ n must be smaller than best_of ({b_curr_val})", NINE)
 
     #* Update N
-    return await Update_Command_Value (update, context, chat_id, new_val, 'n', "⚠ Oops! Unexpected Error Occured. 😟", NINE)
+    return await Update_Command_Value (update, chat_id, new_val, 'n', NINE)
 
 #? Update N via User Text Input
 async def n_update_text (update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = str(update.message.chat_id)
+    chat_id = str(update.message.from_user.id)
     new_val = update.message.text
     
     #* Check User's Value is Numeric (Not Float or Text)
     if new_val.isnumeric():
-        #* Retrieve n's range
-        with open('_Commands.json', 'r', encoding='utf-8') as f:
-            my_data = json.load(f)
-        available_options = my_data["OpenAICommands"]['n'][1]
+        available_options = [1,20]
         
         #! n must be smaller than best_of.
-        b_curr_val = comd_val (chat_id, 'best_of')[0]
+        b_curr_val = int(json.loads(get_user_setting_api(chat_id, sett='best_of')).get('settings'))
         if (int(new_val) > b_curr_val):
-            return await comd_try_again(update, context, f"⚠ n must be smaller than best_of ({b_curr_val})", NINE, True)
+            return await comd_try_again(update, f"⚠ n must be smaller than best_of ({b_curr_val})", NINE, True)
         
         if (available_options[0] <= int(new_val) <= available_options[1]):
             #* Update N
-            return await Update_Command_Value (update, context, chat_id, int(new_val), 'n', "⚠ Oops! Unexpected Error Occured. 😟", NINE, True)
+            return await Update_Command_Value (update, chat_id, str(new_val), 'n', NINE, isText=True)
         else:
-            return await comd_try_again(update, context, f"❗ Value must be between {available_options[0]} and {available_options[1]}", NINE, True)
+            return await comd_try_again(update, f"❗ Value must be between {available_options[0]} and {available_options[1]}", NINE, True)
     else:
-        return await comd_try_again(update, context, f"❗ Value must be Numeric!", NINE, True)
+        return await comd_try_again(update, f"❗ Value must be Numeric!", NINE, True)
     
 #? Update Stop via User Text Input
 async def stop_update_text (update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = str(update.message.chat_id)
+    chat_id = str(update.message.from_user.id)
     value = update.message.text
     new_val = [elem.strip() for elem in (value.split('\\\\'))]      # Split user's text by '\\'
     
     if (len(new_val) <= 4):
         #* Update Stop
-        return await Update_Command_Value (update, context, chat_id, new_val, 'stop', "⚠ Oops! Unexpected Error Occured. 😟", FOUR, True)
+        return await Update_Command_Value (update, chat_id, str(new_val), 'stop', FOUR, isText=True)
     else:
-        return await comd_try_again(update, context, "❗ Only upto 4 stop sequences are allowed!", FOUR, True)
+        return await comd_try_again(update, "❗ Only upto 4 stop sequences are allowed!", FOUR, True)
 
 #? Display User's Current Settings
 async def CurrentSettings (update: Update, context: ContextTypes.DEFAULT_TYPE):
-    import json
     chat_id = str(update.callback_query.from_user.id)
-    filename = '_userSettings.json'
-    with open(filename, "r") as file:
-        data = json.load(file)
+    data = json.loads(get_user_setting_api(chat_id)).get('settings')
     message = ""
-    for key in data[chat_id].keys():
-        if (key=='num_openai_req'): break
-        message = message + f"{key} : {data[chat_id][key]}\n"
+    for key in data.keys():
+        if (key=='num_openai_req' or key=='last_openai_req' or key=='total_queries' or key=='chat_id' or key=='echo'): continue
+        message = message + f"• <b>{key} : </b>{data[key]}\n"
     await update.callback_query.answer()
-    await update.callback_query.edit_message_text("<b>Your Current Settings</b>\n\n" + message + "\n• Select <b>Change Settings</b> To Change\n• Select <b>Help</b> to know more", parse_mode='HTML')
+    await update.callback_query.edit_message_text("<b>Commands for Text Completion</b>\n\n" + message + "\nSelect <b>Change Settings</b> to change.\nSelect <b>Help</b> to know more.", parse_mode='HTML')
     #* Show Main Menu
-    return await BotOptionsCallApart (update, context)
+    return await BotOptionsCallApart (update)
 
 #? Fall back to Default Settings
 async def default (update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = str(update.callback_query.from_user.id)
-    filename = '_userSettings.json'
-    with open(filename, "r") as file:
-        data = json.load(file)
-    Backup_Data = data
-    try:
-        # Update to Default
-        for key in OPENAI_KEYS:
-            data[chat_id][key] = data["defualt_settings"][key]
-        with open(filename, "w") as file:
-            json.dump(data, file, indent=4)
-    except Exception as err:
-        logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', chat_id, str(err))
-        with open(filename, "w") as f:                                  #! Incase any Error occurs, we don't lose our user data
-            json.dump(Backup_Data, f, indent=4)
+    statusCode = update_setting_api(chat_id)
+    msg = "✅ Done! Setting changed to default!"
+    if statusCode != 201:
+        logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', chat_id, "Error while falling back to defualt settings")
+        msg = "⚠ Oops! Something went wrong, please try again"
     await update.callback_query.answer()
-    await update.callback_query.edit_message_text("✅ Done! Setting changed to default!")
+    await update.callback_query.edit_message_text(msg)
     #* Show Main Menu
-    return await BotOptionsCallApart (update, context)
+    return await BotOptionsCallApart (update)
 
 #? Display Setting's Info
 async def commands (update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -756,14 +731,13 @@ async def commands (update: Update, context: ContextTypes.DEFAULT_TYPE):
 What Settings Do?
 
 {COM_TXT[1]}
-
-Try <b>Help</b> to know more!
+Select <b>Help</b> to know more.
 '''
         , disable_web_page_preview=True
         , parse_mode='HTML'
 )
     #* Show Settings Menu
-    return await settings(update, context, True)
+    return await settings(update, True)
 
 #? Display Contact Info
 async def contact (update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -774,28 +748,103 @@ async def contact (update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔸 ChatAI", url='https://chatai.typedream.app/')]])
     )
     #* Show Main Menu
-    return await BotOptionsCallApart (update, context)
+    return await BotOptionsCallApart (update)
+
+#? Any Annnouncements
+def annouce(chat_id, text):
+    try:
+        bot.send_message(chat_id=chat_id, text = text)
+        print("Done! ", chat_id)
+        return True
+    except:
+        return False
+    
+def anouncements(anouncement = False):
+    #*********** Send Anouncement to all users! ******************
+    if anouncement:
+        text = ""
+        # User Chat_id
+        filename = '_usersInfo.json'
+        with open(filename, "r") as file:
+            data = json.load(file)
+        chat_ids = data.keys()
+        # Send Messages
+        n = 0
+        for chat_id in chat_ids:
+            if annouce(chat_id, text): n += 1
+            else: continue
+        print(f"Out of {len(chat_ids)} users, Message Recieved by: {n} users.")
+
+def reBot(reboot=False):
+    if reboot:
+        print("Sending New Menu -- Reboot")
+        # User Chat_id
+        filename = '_usersInfo.json'
+        with open(filename, "r") as file:
+            data = json.load(file)
+        chat_ids = data.keys()
+        # Send Messages
+        n = 0
+        for chat_id in chat_ids:
+        # chat_id = "844328819"
+            try:
+                bot.send_message(
+                    chat_id = chat_id, 
+                    text='''
+🔸🔸🔸🔸🔸🔸🔸🔸🔸🔸🔸🔸
+What would you like to do Today? 😀
+Use /start to start!
+🔸🔸🔸🔸🔸🔸🔸🔸🔸🔸🔸🔸
+'''
+                )
+                bot.unpin_all_chat_messages(chat_id=chat_id)
+                print("Done! ", chat_id)
+                n += 1
+            except: continue
+        print(f"Out of {len(chat_ids)} users, Message Recieved by: {n} users.")
 
 #? Error Handler  
 async def error_han(update, context):
     """Log Errors caused by Updates."""
-    chat_id = str(update.message.chat_id)
-    logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', chat_id, context.error)
+    try:
+        chat_id = str(update.message.from_user.id)
+        logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', chat_id, context.error)
+    except:
+        logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', '<no chat_id>', context.error)
+    try:
+        #* Send Error Message to Developer. -- or send through Telegram Group 'ChatAI Log'(chat_id: "-632198831").
+        DEVELOPER_CHAT_ID = config('ADMIN_TELE_ID')
+        # traceback.format_exception returns the usual python message about an exception, but as a
+        # list of strings rather than a single string, so we have to join them together.
+        tb_list = traceback.format_exception(None, context.error, context.error.__traceback__)
+        tb_string = "".join(tb_list)
+        # Build the message with some markup and additional information about what happened.
+        update_str = update.to_dict() if isinstance(update, Update) else str(update)
+        message = (
+            f"An exception was raised while handling an update\n"
+            f"<pre>update = {html.escape(json.dumps(update_str, indent=2, ensure_ascii=False))}"
+            "</pre>\n\n"
+            f"<pre>context.chat_data = {html.escape(str(context.chat_data))}</pre>\n\n"
+            f"<pre>context.user_data = {html.escape(str(context.user_data))}</pre>\n\n"
+            f"<pre>{html.escape(tb_string)}</pre>"
+        )
+        # Finally, send the message (telegram has a message limit of 4096 characters).
+        await context.bot.send_message(chat_id=DEVELOPER_CHAT_ID, text=message[:4096], parse_mode="HTML")
+    except: pass
     
 ##******************************************************* MAIN FUNCTION ******************************************************
 def main():
-    #! Bot API Key  -- using environment variable (from .env file) to avoid exposing the API key in the code
-    BOT_TOKEN = config('TELE_BOT_API_KEY_2')
-
     #* By using Persistence, it is possible to keep inline buttons usable
     persistence = PicklePersistence(filepath='AysncChatAI_conv')
     application = Application.builder().token(BOT_TOKEN).persistence(persistence).build()
     
     #* Send Anouncement to all users!
-    # anouncement = False
-    # if anouncement:
-    #     bot.send_message(chat_id='<id>', text='We are up! 😀')
-        
+    anouncements(False)
+    
+    #* Restart the Bot
+    reBot(False)
+    
+    #* When bot is started
     load_commands_text()
 
     #* Handle Conversation
@@ -836,9 +885,9 @@ def main():
                 CallbackQueryHandler(settings, pattern='^' + str(CANCELOPT-1) + '$')                # Settings Menu
             ],
             MODEL: [
-                CallbackQueryHandler(settings, pattern='^' + str(CANCELOPT-1) + '$'),               # Settings Menu (this handler's presedence is imp.)
+                CallbackQueryHandler(settings, pattern='^' + str(CANCELOPT-1) + '$'),               # Settings Menu (the handler's presedence is imp.)
                 CallbackQueryHandler(model_update),                                                 # This CallbackQueryHandler will handle any button pressed
-                MessageHandler(filters.TEXT & ~filters.COMMAND, model_update_text)  # Any text input will be handled here
+                MessageHandler(filters.TEXT & ~filters.COMMAND, model_update_text)                  # Any text input will be handled here
             ],
             TEMP: [
                 CallbackQueryHandler(settings, pattern='^' + str(CANCELOPT-1) + '$'),
@@ -902,9 +951,36 @@ def main():
     application.add_error_handler(error_han)
     
     #* Open Bot to take commands
+    # try:
+        # #* WebHook: using ngrok's tunneling: https://dashboard.ngrok.com/tunnels/agents)
+        # # Open cmd and goto the location where file "ngrol.exe" is located. Then type "ngrok http 8443"
+        # webhook_url = config('NGROK_URL')
+        # logger.info(f"Using webhooks- running on: {webhook_url}")
+        # PORT = int(os.environ.get('PORT', 8443))
+        # updater.start_webhook(
+        #     listen="0.0.0.0",
+        #     port=PORT,
+        #     url_path=BOT_TOKEN,
+        #     webhook_url = webhook_url + '/' + BOT_TOKEN                   
+        # )
+        # '''We are running this on our system port 'Localhost:8443' which using ngrok we are tunneling so that open internet could access. Hence Telegram send request on that.'''
+        # #* WebHook: AWS API Gateway and Lambda Function -- Working but don't know how to implement yet😔
+        # logger.info("Using webhooks.")
+        # PORT = int(os.environ.get('PORT', 8443))
+        # updater.start_webhook(
+        #     listen="0.0.0.0",
+        #     port=PORT,
+        #     url_path=BOT_TOKEN,             
+        #     webhook_url = 'https://aczt589an5.execute-api.ap-northeast-1.amazonaws.com/ChatAIWebhook'
+        # )
+    # except:
+    #* Polling
+    logger.info("Using polling.")
     application.run_polling()
 
+    application.idle()
 
+#* Start the Bot
 if __name__ == '__main__':
     main()
 
@@ -913,7 +989,7 @@ if __name__ == '__main__':
 
 # BOT_TOKEN = config('TELE_BOT_API_KEY_2')
 
-# #* By using Persistence, it is possible to keep inline buttons usable
+# #* By using Persistence, it is possible to keep inline buttons usable even after the bot got shutdown
 # persistence = PicklePersistence(filepath='AysncChatAI_conv')
 # application = Application.builder().token(BOT_TOKEN).persistence(persistence).build()
 

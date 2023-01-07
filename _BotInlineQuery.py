@@ -4,16 +4,16 @@ from telegram import Update
 from telegram.ext import ContextTypes
 from telegram import InlineQueryResultArticle, InputTextMessageContent, InlineQueryResultPhoto #, InlineQueryResultDocument
 
-from _reqOpenAI import *
+from _reqOpenAI import send_req_openai_chat, send_req_openai_image
 
 #? Inline Query Handler
 from uuid import uuid4
 async def inline_query_initial(update: Update, context: ContextTypes.DEFAULT_TYPE):         #? inline_query_initial -- with end of the query model ("\\")
     query = update.inline_query.query
     if query != "":
-        query = query.strip()
-        if query.endswith('\\\\'):
-            if (len(query) <= 230):         # This is the no. of characters that user can write in inline query
+        if (len(query) <= 230):         # This is the no. of characters that user can write in inline query
+            query = query.strip()
+            if query.endswith('\\\\'):
                 if query.startswith('i-'):
                     # update.inline_query.answer(results=[InlineQueryResultArticle(id=str(uuid4()),title="ChatAI",description="Generating!🔄, Please wait.....",input_message_content=InputTextMessageContent("Not Valid!"))])
                     await inline_query_image(update, query.lstrip("i-").rstrip(('\\\\')))
@@ -21,16 +21,16 @@ async def inline_query_initial(update: Update, context: ContextTypes.DEFAULT_TYP
                     # update.inline_query.answer(results=[InlineQueryResultArticle(id=str(uuid4()),title="ChatAI",description="Generating!🔄, Please wait.....",input_message_content=InputTextMessageContent("Not Valid!"))])
                     await inline_query_text(update, query.rstrip("\\\\"))
             else:
-                await update.inline_query.answer(results=[InlineQueryResultArticle(id=str(uuid4()),title="ChatAI",description=f"⚠ Query must not exceed 230 characters.",input_message_content=InputTextMessageContent("Invalid Input!"))])
+                await update.inline_query.answer(results=[InlineQueryResultArticle(id=str(uuid4()),title="ChatAI",description="💡Put \'\\\\\' at the end to start Generarting.",input_message_content=InputTextMessageContent("Invalid Input!"))])
         else:
-            await update.inline_query.answer(results=[InlineQueryResultArticle(id=str(uuid4()),title="ChatAI",description="Put \'\\\\\' at the end to start Generarting.",input_message_content=InputTextMessageContent("Invalid Input!"))])
+            await update.inline_query.answer(results=[InlineQueryResultArticle(id=str(uuid4()),title="ChatAI",description=f"⚠ Query must not exceed 230 characters.",input_message_content=InputTextMessageContent("Invalid Input!"))])
     else:
-        await update.inline_query.answer(results=[InlineQueryResultArticle(id=str(uuid4()),title="ChatAI",description="💡Start writing to Generate.\n• End your query with \'\\\\\'\n• For Image generation, use 'i-' flag at start.",input_message_content=InputTextMessageContent("Invalid Input!"))])
+        await update.inline_query.answer(results=[InlineQueryResultArticle(id=str(uuid4()),title="ChatAI",description="💡Start writing to Generate.\n• End your query with \'\\\\\'\n• Image generation: start query with 'i-' flag.",input_message_content=InputTextMessageContent("Invalid Input!"))])
 
 #* This code is Efficient to provide Real Time "Text Completion", 
 #* though becuase to avoid unnessary (tons) of OpenAI API requests, 
 #* and also as it produces high amount of machine load (which if not be handled correctly by the machine, it can produce unexpected results), 
-#* hence to avoid this we made a wrapper function inline_query_initial(), 
+#* hence to avoid this I made a wrapper function inline_query_initial(), 
 #* which will allow this function to run only if the user put '\\' at the end of its query.
 async def inline_query_text(update: Update, query) -> None:
     #* Send OpenAI Request
@@ -38,11 +38,12 @@ async def inline_query_text(update: Update, query) -> None:
     
     try:
         response, prob_file = await send_req_openai_chat(update, query, chat_id, True)
+        response = query + '\n\n' + response
         results = [
             InlineQueryResultArticle(                                       #* https://github.com/python-telegram-bot/python-telegram-bot/blob/master/examples/inlinebot.py
                 id = str(uuid4()),
                 title = "ChatAI",
-                description = query[:50],
+                description = f"🟢Generated! Tap me. \n({query[:50]}..)",
                 input_message_content = InputTextMessageContent(response)
                 # reply_markup = InlineKeyboardMarkup(inline_keyboard)          # You can generate an inline keyboard too
             )
@@ -70,7 +71,7 @@ async def inline_query_image (update: Update, query) -> None:
                 InlineQueryResultPhoto(                                       #* https://github.com/python-telegram-bot/python-telegram-bot/blob/master/examples/inlinebot.py
                     id = str(uuid4()),
                     title = "ChatAI",
-                    description = query[:50],
+                    description = f"🟢Generated! Tap me. \n({query[:50]}..)",
                     photo_url = response,
                     thumb_url = response
                 )

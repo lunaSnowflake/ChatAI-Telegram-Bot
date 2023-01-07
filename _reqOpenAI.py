@@ -1,42 +1,36 @@
 from telegram import Update
 from decouple import config
-import openai
 import aiohttp
+from datetime import datetime
 
-from _userSettings import *
+from ChatAPI_req import *
 
 #********************************************* Send the Requests to OPENAI *************************************************
 api_key = config('OPENAI_API_KEY')
     
 #? Check if user don't send OpenAI requests more than max limit
-def check_req_validity(chat_id):
+def check_req_validity(data, chat_id):
     req_limit = 50
     status = False
-    filename = '_userSettings.json'
     
-    # Read file contents
-    with open(filename, "r") as file:
-        data = json.load(file)
-
     # Update json object
-    from datetime import datetime
-    lt_req = data[chat_id]['last_openai_req']
+    lt_req = data.get('last_openai_req')
     lt_req = datetime.strptime(lt_req, '%Y-%m-%d %H:%M:%S').date()
     today = datetime.now().date()
-    if (today > lt_req):                                                #? Check last request time if it was not made today
-        data[chat_id]['num_openai_req'] = 0
-            
-    data[chat_id]['last_openai_req'] = datetime.now().isoformat(sep=" ", timespec="seconds")
-    if (data[chat_id]['num_openai_req'] >= req_limit):                  #? Check number of requests
+    settings = {}
+    settings["total_queries"] = str(int(data.get('total_queries')) + 1)
+    if (today > lt_req):                                                    #? Check last request time if it was not made today
+        settings["num_openai_req"] = "0"
+    
+    settings["last_openai_req"] = datetime.now().isoformat(sep=" ", timespec="seconds")
+    if (int(data.get('num_openai_req')) >= req_limit):                       #? Check number of requests
         status = False
-    else:   
-        data[chat_id]['num_openai_req'] += 1
+    else:
+        settings["num_openai_req"] = str(int(data.get('num_openai_req')) + 1)
         status = True
     
-    # Write json file
-    with open(filename, "w") as file:
-        json.dump(data, file, indent=4)
-        
+    update_setting_api(chat_id, settings)
+    
     return status
 
 #? Adjust max token length
@@ -52,19 +46,6 @@ def adj_tokenLen(user_text, max_length, model):
     max_length = (max_tokens-nTokens) if (Total_Tokens > max_tokens) else max_length
     return max_length
     
-#? Save User Queries to Database
-def query_DB(user_text):
-    import json
-    with open("_QueryDB.json",'r+') as file:
-        # First we load existing data into a dict.
-        file_data = json.load(file)
-        # Join new_data with file_data inside Queries
-        file_data["Queries"].append(user_text)
-        # Sets file's current position at offset.
-        file.seek(0)
-        # convert back to json.
-        json.dump(file_data, file, indent = 4)
-
 #? Generate Probabilities
 def calProbs (tokens, token_logprobs, prob_file_name, user_text):
     try:
@@ -110,11 +91,22 @@ def calProbs (tokens, token_logprobs, prob_file_name, user_text):
             f.write(html_str)
                     
 #? Make Text Completion Request
-async def request_completions(user_text, chat_id, is_defualt=False):
-    
+async def request_completions(user_text, chat_id, data, is_defualt=False):
     #* Retrive User's OpenAI Settings
-    model, temperature, max_length, stop, top_p, frequency_penalty, presence_penalty, best_of, n, gen_probs = comd_val(chat_id, 'model', 'temperature', 'max_length', 'stop', 'top_p', 'frequency_penalty', 'presence_penalty', 'best_of', 'n', 'gen_probs')
-
+    model = data.get('model')
+    temperature = float(data.get('temperature'))
+    max_length = int(data.get('max_length'))
+    stop =  None if data.get('stop') == "" else data.get('stop')
+    top_p = float(data.get('top_p'))
+    frequency_penalty = float(data.get('frequency_penalty'))
+    presence_penalty = float(data.get('presence_penalty'))
+    best_of = int(data.get('best_of'))
+    n = int(data.get('n'))
+    gen_probs = data.get('gen_probs')
+    
+    # print(model, temperature, max_length, stop, top_p, frequency_penalty, presence_penalty, best_of, n, gen_probs)
+    # print(type(model), type(temperature), type(max_length), type(stop), type(top_p), type(frequency_penalty), type(presence_penalty), type(best_of), type(n), type(gen_probs))
+    
     #* Adjust max token length
     max_length = adj_tokenLen(user_text, max_length, model)
         
@@ -131,21 +123,6 @@ async def request_completions(user_text, chat_id, is_defualt=False):
     
     # Set the request body
     if (not is_defualt):
-        # data = f"""
-        # {{
-        #     "model": {json.dumps(model)},
-        #     "prompt": {json.dumps(user_text)},
-        #     "temperature": {json.dumps(temperature)},
-        #     "max_tokens": {json.dumps(max_length)},
-        #     "stop": {json.dumps(stop)},
-        #     "top_p": {json.dumps(top_p)},
-        #     "frequency_penalty": {json.dumps(frequency_penalty)},
-        #     "presence_penalty": {json.dumps(presence_penalty)},
-        #     "best_of" : {json.dumps(best_of)},
-        #     "n": {json.dumps(n)},
-        #     "logprobs": {json.dumps(gen_probs)},
-        #     "user": {json.dumps('user' + chat_id)}
-        # }}"""
         data = json.dumps(
             {
                 "model": model,
@@ -186,27 +163,29 @@ async def request_completions(user_text, chat_id, is_defualt=False):
 #? Generate Text Completion
 async def send_req_openai_chat (update: Update, user_text, chat_id, isInlineReq):
     #* save user queries
-    query_DB('chat:' + user_text)
+    queryDB_api (chat_id, user_text, "chat")
+    
+    #* Get user settings
+    data = json.loads(get_user_setting_api(chat_id)).get('settings')
     
     #* Check if user can send OpenAI request
-    status = check_req_validity(chat_id)
+    status = check_req_validity(data, chat_id)
     
     prob_file_name = None
     if status:
         #* Query Response
-        response = await request_completions(user_text, chat_id, is_defualt=False)
+        response = await request_completions(user_text, chat_id, data, is_defualt=False)
         text_resp = response["choices"][0]["text"]
+        
         #* Generate Probability File
-        gen_probs = comd_val(chat_id, 'gen_probs')[0]
+        gen_probs = data.get('gen_probs')
         if gen_probs and (not isInlineReq):
             token_logprobs = response["choices"][0]["logprobs"]["token_logprobs"]
             tokens = response["choices"][0]["logprobs"]["tokens"]
             prob_file_name = response['id'] + ".html"
-            calProbs (tokens, token_logprobs, prob_file_name, user_text)
-            
+            calProbs (tokens, token_logprobs, prob_file_name, user_text)            
     else:
         text_resp = "⚠ Oop! Maximum Request Limit Reached for Today. 😔\nTry Again Tommorrow! 😀"
-        return text_resp, prob_file_name
     return text_resp, prob_file_name
 
 #? Make Image Request
@@ -219,14 +198,14 @@ async def request_image(user_text, chat_id):
     }
 
     # Set the request body
-    data = f"""
-    {{
-        "prompt": "{user_text}",
-        "num_images":1,
-        "size":"1024x1024",
-        "user": {json.dumps('user' + chat_id)}
-    }}
-    """
+    data = json.dumps(
+        {
+            "prompt": user_text,
+            "num_images":1,
+            "size":"1024x1024",
+            "user": 'user' + chat_id
+        }
+    )
 
     # Send the request
     async with aiohttp.ClientSession() as session:
@@ -242,11 +221,14 @@ async def request_image(user_text, chat_id):
 #? Image Generation
 async def send_req_openai_image (update: Update, user_text, chat_id, isInlineReq):
     #* save user queries
-    query_DB('image:' + user_text)
+    queryDB_api (chat_id, user_text, "image")
+    
+    #* Get user settings
+    data = json.loads(get_user_setting_api(chat_id)).get('settings')
     
     #* Check if user can send OpenAI request
-    status = check_req_validity(chat_id)
-
+    status = check_req_validity(data, chat_id)
+    
     if status:
         #* Query Response
         response =  await request_image(user_text, chat_id)

@@ -4,7 +4,7 @@ from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 from telegram import ForceReply
 import json
 
-from _userSettings import *
+from ChatAPI_req import *
 
 #*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 #* Stages
@@ -16,7 +16,7 @@ from sys import maxsize
 CANCELOPT = -(maxsize)
 #*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-async def keyboard_commands (update: Update, context: ContextTypes.DEFAULT_TYPE, comd, text):
+async def keyboard_commands (update: Update, comd, text):
     with open('_Commands.json', 'r', encoding='utf-8') as f:
         my_data = json.load(f)
     inline_keyboard = []
@@ -34,14 +34,14 @@ async def keyboard_commands (update: Update, context: ContextTypes.DEFAULT_TYPE,
     await update.callback_query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(inline_keyboard))
 
 async def model (update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await keyboard_commands(update, context, 'model', "Select A Model.")
+    await keyboard_commands(update, 'model', "Select A Model.")
     return MODEL
     
 async def gen_probs (update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await keyboard_commands(update, context, 'gen_probs', "Enable Probilities?")
+    await keyboard_commands(update, 'gen_probs', "Enable Probilities?")
     return GEN_PROBS
 
-async def input_commands_flt (update: Update, context: ContextTypes.DEFAULT_TYPE, comd):
+async def input_commands_flt (update: Update, comd):
     with open('_Commands.json', 'r', encoding='utf-8') as f:
         my_data = json.load(f)
     from numpy import linspace
@@ -65,22 +65,22 @@ async def input_commands_flt (update: Update, context: ContextTypes.DEFAULT_TYPE
     )
 
 async def temperature (update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await input_commands_flt (update, context, 'temperature')
+    await input_commands_flt (update, 'temperature')
     return TEMP
 
 async def top_p (update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await input_commands_flt (update, context, 'top_p')
+    await input_commands_flt (update, 'top_p')
     return TOP_P
 
 async def frequency_penalty (update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await input_commands_flt (update, context, 'frequency_penalty')
+    await input_commands_flt (update, 'frequency_penalty')
     return FREQ_PENAL
 
 async def presence_penalty (update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await input_commands_flt (update, context, 'presence_penalty')
+    await input_commands_flt (update, 'presence_penalty')
     return PRES_PENAL
 
-async def input_commands_int (update: Update, context: ContextTypes.DEFAULT_TYPE, raw_available_options):
+async def input_commands_int (update: Update, raw_available_options):
     from numpy import linspace
     inline_keyboard = []
     available_options = list(linspace(raw_available_options[0],raw_available_options[1],6))
@@ -102,35 +102,25 @@ async def input_commands_int (update: Update, context: ContextTypes.DEFAULT_TYPE
     )
     
 async def max_length (update: Update, context: ContextTypes.DEFAULT_TYPE):
-    with open('_Commands.json', 'r', encoding='utf-8') as f:
-        my_data = json.load(f)
-    available_options = my_data["OpenAICommands"]['max_length'][1]
+    chat_id = str(update.callback_query.from_user.id)
+    available_options = [1, 2048]
     
     #? "text-davinci-003" the max_token is 4096, while for other models it is 2048
-    chat_id = str(update.callback_query.from_user.id)
-    curr_model = comd_val(chat_id, 'model')
-    if (curr_model[0] == "text-davinci-003"): available_options[1] = 4096
+    curr_model = json.loads(get_user_setting_api(chat_id, sett='model')).get('settings')
+    if (curr_model == "text-davinci-003"): available_options[1] = 4096
     
-    await input_commands_int (update, context, available_options)
+    await input_commands_int (update, available_options)
     
     return MAX_LENGTH
 
 async def best_of (update: Update, context: ContextTypes.DEFAULT_TYPE):
-    with open('_Commands.json', 'r', encoding='utf-8') as f:
-        my_data = json.load(f)
-    available_options = my_data["OpenAICommands"]['best_of'][1]
-    
-    await input_commands_int (update, context, available_options)
-    
+    available_options = [1,20]
+    await input_commands_int (update, available_options)
     return BEST_OF
 
 async def n (update: Update, context: ContextTypes.DEFAULT_TYPE):
-    with open('_Commands.json', 'r', encoding='utf-8') as f:
-        my_data = json.load(f)
-    available_options = my_data["OpenAICommands"]['n'][1]
-    
-    await input_commands_int (update, context, available_options)
-    
+    available_options = [1,20] 
+    await input_commands_int (update, available_options)    
     return N
 
 async def stop (update: Update, context: ContextTypes.DEFAULT_TYPE):
