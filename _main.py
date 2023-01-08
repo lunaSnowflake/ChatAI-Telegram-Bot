@@ -956,34 +956,31 @@ def main():
     # application.add_error_handler(error_han)
     
     #* Open Bot to take commands
-    # try:
-        # #* WebHook: using ngrok's tunneling: https://dashboard.ngrok.com/tunnels/agents)
-        # # Open cmd and goto the location where file "ngrol.exe" is located. Then type "ngrok http 8443"
-        # webhook_url = config('NGROK_URL')
-        # logger.info(f"Using webhooks- running on: {webhook_url}")
-        # PORT = int(os.environ.get('PORT', 8443))
-        # updater.start_webhook(
-        #     listen="0.0.0.0",
-        #     port=PORT,
-        #     url_path=BOT_TOKEN,
-        #     webhook_url = webhook_url + '/' + BOT_TOKEN                   
-        # )
-        # '''We are running this on our system port 'Localhost:8443' which using ngrok we are tunneling so that open internet could access. Hence Telegram send request on that.'''
-        # #* WebHook: AWS API Gateway and Lambda Function -- Working but don't know how to implement yet😔
-        # logger.info("Using webhooks.")
-        # PORT = int(os.environ.get('PORT', 8443))
-        # updater.start_webhook(
-        #     listen="0.0.0.0",
-        #     port=PORT,
-        #     url_path=BOT_TOKEN,             
-        #     webhook_url = 'https://aczt589an5.execute-api.ap-northeast-1.amazonaws.com/ChatAIWebhook'
-        # )
-    # except:
-    #* Polling
-    logger.info("Using polling.")
-    application.run_polling()
-
-    # application.idle()
+    try:
+        ''' If want to Delete Webhook connection manually: https://api.telegram.org/bot5983430779:AAE3UIeIXCooM0bOL0BBKOLuC_qkcVxdchs/deleteWebhook 
+            If using python-telegram-bot v20.x to use webhook install: pip install python-telegram-bot[webhooks]'''
+        #* WebHook: using ngrok's tunneling: https://dashboard.ngrok.com/tunnels/agents)
+        '''We are running this on our system port 'Localhost:8443' which using ngrok we are tunneling so that open internet could access. 
+            Hence Telegram will send request to ngrok which in result send it to our port which we are listing to.
+            To get ngrok url: Open cmd and goto the location where file "ngrol.exe" is located. Then type "ngrok http 8443"'''
+        # logger.info(f"Using webhooks - running on: {webhook_url}")
+        # webhook_url = config('NGROK_URL') + '/' + BOT_TOKEN
+        #* WebHook: AWS API Gateway and Lambda Function 
+        ''' Working but don't know how to implement yet😔. 
+            To make it work we need to setup SSH server using OpenSSH'''
+        logger.info("Using webhooks. - running on: AWS Api")
+        webhook_url = config('AWS_URL')
+        PORT = int(os.environ.get('PORT', 8443))
+        application.run_webhook(
+            listen="0.0.0.0",
+            port=PORT,
+            url_path=BOT_TOKEN,             
+            webhook_url = webhook_url
+        )
+    except:
+        #* Polling
+        logger.info("Using polling.")
+        application.run_polling()
 
 #* Start the Bot
 if __name__ == '__main__':
