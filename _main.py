@@ -162,7 +162,6 @@ Settings_Buttons = [
     ]
 ]
 
-
 #? Add To User Info to Database (if new-user)
 async def new_user (update: Update):
     chat_id = str(update.message.from_user.id)
@@ -178,6 +177,7 @@ async def new_user (update: Update):
         return False
     
     if isnewlyadded:
+        logger.info(f"Starting Bot for {chat_id}")
         await update.message.reply_text(f"Welcome {update.message.chat.first_name}! 😀")
         #* Add Defualt setting for new User
         statusCode = await new_setting_api(chat_id)
@@ -186,6 +186,7 @@ async def new_user (update: Update):
         else:
             return False
     else:
+        logger.info(f"Re-starting Bot for {chat_id}")
         await update.message.reply_text(f"Welcome Back {update.message.chat.first_name}! 😀")
     
     return True
@@ -223,7 +224,7 @@ async def BotOptionsCallApart (update: Update):
     return MAIN
     
 #? Start
-async def start (update: Update, context: ContextTypes.DEFAULT_TYPE):    
+async def start (update: Update, context: ContextTypes.DEFAULT_TYPE):
     #* Add New User
     status = await new_user(update)
     
@@ -956,31 +957,31 @@ def main():
     # application.add_error_handler(error_han)
     
     #* Open Bot to take commands
-    try:
-        ''' If want to Delete Webhook connection manually: https://api.telegram.org/bot5983430779:AAE3UIeIXCooM0bOL0BBKOLuC_qkcVxdchs/deleteWebhook 
-            If using python-telegram-bot v20.x to use webhook install: pip install python-telegram-bot[webhooks]'''
-        #* WebHook: using ngrok's tunneling: https://dashboard.ngrok.com/tunnels/agents)
-        '''We are running this on our system port 'Localhost:8443' which using ngrok we are tunneling so that open internet could access. 
-            Hence Telegram will send request to ngrok which in result send it to our port which we are listing to.
-            To get ngrok url: Open cmd and goto the location where file "ngrol.exe" is located. Then type "ngrok http 8443"'''
-        # logger.info(f"Using webhooks - running on: {webhook_url}")
-        # webhook_url = config('NGROK_URL') + '/' + BOT_TOKEN
-        #* WebHook: AWS API Gateway and Lambda Function 
-        ''' Working but don't know how to implement yet😔. 
-            To make it work we need to setup SSH server using OpenSSH'''
-        logger.info("Using webhooks. - running on: AWS Api")
-        webhook_url = config('AWS_URL')
-        PORT = int(os.environ.get('PORT', 8443))
-        application.run_webhook(
-            listen="0.0.0.0",
-            port=PORT,
-            url_path=BOT_TOKEN,             
-            webhook_url = webhook_url
-        )
-    except:
-        #* Polling
-        logger.info("Using polling.")
-        application.run_polling()
+    # try:
+    #     ''' If want to Delete Webhook connection manually: https://api.telegram.org/bot5983430779:AAE3UIeIXCooM0bOL0BBKOLuC_qkcVxdchs/deleteWebhook 
+    #         If using python-telegram-bot v20.x to use webhook install: pip install python-telegram-bot[webhooks]'''
+    #     #* WebHook: using ngrok's tunneling: https://dashboard.ngrok.com/tunnels/agents)
+    #     '''We are running this on our system port 'Localhost:8443' which using ngrok we are tunneling so that open internet could access. 
+    #         Hence Telegram will send request to ngrok which in result send it to our port which we are listing to.
+    #         To get ngrok url: Open cmd and goto the location where file "ngrol.exe" is located. Then type "ngrok http 8443"'''
+    #     # logger.info(f"Using webhooks - running on: {webhook_url}")
+    #     # webhook_url = config('NGROK_URL') + '/' + BOT_TOKEN
+    #     #* WebHook: AWS API Gateway and Lambda Function 
+    #     ''' Working but don't know how to implement yet😔. 
+    #         To make it work we need to setup SSH server using OpenSSH'''
+    #     logger.info("Using webhooks. - running on: AWS Api")
+    #     webhook_url = config('AWS_URL')
+    #     PORT = int(os.environ.get('PORT', 8443))
+    #     application.run_webhook(
+    #         listen="0.0.0.0",
+    #         port=PORT,
+    #         url_path=BOT_TOKEN,             
+    #         webhook_url = webhook_url
+    #     )
+    # except:
+    #* Polling
+    logger.info("Using polling.")
+    application.run_polling()
 
 #* Start the Bot
 if __name__ == '__main__':
