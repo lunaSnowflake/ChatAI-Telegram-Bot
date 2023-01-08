@@ -1,5 +1,4 @@
 from datetime import datetime
-import requests
 import aiohttp
 from decouple import config
 import json

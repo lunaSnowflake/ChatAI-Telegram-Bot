@@ -334,6 +334,7 @@ async def openai_handler (update: Update, context: ContextTypes.DEFAULT_TYPE, ty
         #* Send Chat OpenAI request
         if (type==0):
             try:
+                logger.info(f"Requesting OpenAI TextCompletion: {chat_id}")
                 response, prob_file = await send_req_openai_chat(update, text, chat_id, False)
             except Exception as err:
                 logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', chat_id, str(err))
@@ -360,6 +361,7 @@ async def openai_handler (update: Update, context: ContextTypes.DEFAULT_TYPE, ty
                 await update.message.reply_text("❗ Query too long (The maximum length is 1000 characters.)")
             else:
                 try:
+                    logger.info(f"Requesting OpenAI Image Generation: {chat_id}")
                     response, limit = await send_req_openai_image(update, text, chat_id, False)
                 except Exception as err:
                     logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', chat_id, str(err))
@@ -954,7 +956,7 @@ def main():
     application.add_handler(InlineQueryHandler(inline_query_initial))
     
     #* Handle Errors
-    # application.add_error_handler(error_han)
+    application.add_error_handler(error_han)
     
     #* Open Bot to take commands
     # try:
@@ -964,13 +966,13 @@ def main():
     #     '''We are running this on our system port 'Localhost:8443' which using ngrok we are tunneling so that open internet could access. 
     #         Hence Telegram will send request to ngrok which in result send it to our port which we are listing to.
     #         To get ngrok url: Open cmd and goto the location where file "ngrol.exe" is located. Then type "ngrok http 8443"'''
-    #     # logger.info(f"Using webhooks - running on: {webhook_url}")
-    #     # webhook_url = config('NGROK_URL') + '/' + BOT_TOKEN
+    #     webhook_url = config('NGROK_URL') + '/' + BOT_TOKEN
+    #     logger.info(f"Using webhooks - running on: {webhook_url}")
     #     #* WebHook: AWS API Gateway and Lambda Function 
     #     ''' Working but don't know how to implement yet😔. 
     #         To make it work we need to setup SSH server using OpenSSH'''
-    #     logger.info("Using webhooks. - running on: AWS Api")
-    #     webhook_url = config('AWS_URL')
+    #     # webhook_url = config('AWS_URL')
+    #     # logger.info("Using webhooks. - running on: AWS Api")
     #     PORT = int(os.environ.get('PORT', 8443))
     #     application.run_webhook(
     #         listen="0.0.0.0",
