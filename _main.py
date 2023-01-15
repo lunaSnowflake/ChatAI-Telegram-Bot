@@ -980,9 +980,9 @@ def main():
     #         url_path=BOT_TOKEN,             
     #         webhook_url = webhook_url
     #     )
-    # except:
+    # except Exception as err:
     #* Polling
-    logger.info("Using polling.")
+    logger.info("Using polling, due to Error: ", err)
     application.run_polling()
 
 #* Start the Bot
