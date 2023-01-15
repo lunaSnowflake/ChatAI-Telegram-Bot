@@ -186,7 +186,7 @@ async def send_req_openai_chat (update: Update, user_text, chat_id, isInlineReq)
             calProbs (tokens, token_logprobs, prob_file_name, user_text)            
     else:
         text_resp = "⚠ Oop! Maximum Request Limit Reached for Today. 😔\nTry Again Tommorrow! 😀"
-    return text_resp, prob_file_name
+    return text_resp, prob_file_name, int(data.get('num_openai_req'))
 
 #? Make Image Request
 async def request_image(user_text, chat_id):

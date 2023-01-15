@@ -37,7 +37,7 @@ async def inline_query_text(update: Update, query) -> None:
     chat_id = str(update.inline_query.from_user.id)
     
     try:
-        response, prob_file = await send_req_openai_chat(update, query, chat_id, True)
+        response, prob_file, num_openai_req = await send_req_openai_chat(update, query, chat_id, True)
         response = query + '\n\n' + response
         results = [
             InlineQueryResultArticle(                                       #* https://github.com/python-telegram-bot/python-telegram-bot/blob/master/examples/inlinebot.py

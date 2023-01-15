@@ -335,7 +335,7 @@ async def openai_handler (update: Update, context: ContextTypes.DEFAULT_TYPE, ty
         if (type==0):
             try:
                 logger.info(f"Requesting OpenAI TextCompletion: {chat_id}")
-                response, prob_file = await send_req_openai_chat(update, text, chat_id, False)
+                response, prob_file, num_openai_req = await send_req_openai_chat(update, text, chat_id, False)
             except Exception as err:
                 logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', chat_id, str(err))
                 await bot.delete_message(chat_id=gen_msg.chat_id, message_id=gen_msg.message_id)      # Delete "Generating..." message
@@ -350,7 +350,7 @@ async def openai_handler (update: Update, context: ContextTypes.DEFAULT_TYPE, ty
                         await context.bot.send_document(chat_id, doc)
                     os.remove(prob_file)        # Delete Probability File
                 #* If user's first query of the day, give a Tip to change settings
-                num_openai_req = int(json.loads(await get_user_setting_api (chat_id, sett='num_openai_req')).get('settings'))
+                # num_openai_req = int(json.loads(await get_user_setting_api (chat_id, sett='num_openai_req')).get('settings'))
                 if num_openai_req == 1:
                     await update.message.reply_text("💡Tips:\n• You can change settings for Text Generation using 'Change Settings' from Main Menu.\n• Use '🏠 Main Menu' from above pinned to go back.")
         #* Send Image OpenAI request
