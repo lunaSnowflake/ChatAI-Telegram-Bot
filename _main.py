@@ -126,7 +126,7 @@ Main_Menu_Buttons = [
     ],
     [
         InlineKeyboardButton("💡Command Info", callback_data=str(SEVEN)),
-        InlineKeyboardButton("❤ Contact", callback_data=str(EIGHT))
+        InlineKeyboardButton("❤ Feedback", url='https://i77ync387yc.typeform.com/to/qjCe8vk9')
     ],
     [
         InlineKeyboardButton("🔸 ChatAI", url='https://chatai.typedream.app/')
@@ -388,12 +388,12 @@ async def openai_handler (update: Update, context: ContextTypes.DEFAULT_TYPE, ty
 async def TerminateOpenAI (update: Update, context: ContextTypes.DEFAULT_TYPE):
     #* Prompt Terminate Message to User and **Remove any Reply-Keyboard**
     await update.callback_query.answer()
-    gen_msg = await update.callback_query.message.reply_text("🏠 Going Back Home..😊", reply_markup=ReplyKeyboardRemove())
+    # gen_msg = await update.callback_query.message.reply_text("🏠 Going Back Home..😊", reply_markup=ReplyKeyboardRemove())
     #* Un-pin all messages from chat -- the cancel message
     chat_id = str(update.callback_query.from_user.id)
     await bot.unpin_all_chat_messages(chat_id=chat_id)
     #* Delete Generated Message
-    await bot.delete_message(chat_id=gen_msg.chat_id, message_id=gen_msg.message_id)
+    # await bot.delete_message(chat_id=gen_msg.chat_id, message_id=gen_msg.message_id)
     #* Show Main Menu
     inline_markup = InlineKeyboardMarkup(Main_Menu_Buttons)
     await update.callback_query.message.reply_text("What would you like to do? 😀", reply_markup=inline_markup)
@@ -401,14 +401,18 @@ async def TerminateOpenAI (update: Update, context: ContextTypes.DEFAULT_TYPE):
     return MAIN
     
 #? Settings
-async def settings (update: Update, context: ContextTypes.DEFAULT_TYPE, isText=False):
+async def settings (update: Update, context: ContextTypes.DEFAULT_TYPE, msg="", isText=False):
     #* Prompt Settings Menu to User
     inline_markup = InlineKeyboardMarkup(Settings_Buttons)
-    msg = '''
+    if msg == "":
+        msg = '''
 Select the setting, you want to Change.
 ℹ <b>Remember:</b> It'll affect your Text Completion.
 Use <b>Get Info</b> to learn more.
 '''
+    else:
+        msg = msg + "\nWhat next?"
+        
     if (not isText):            # When called from Callback -- replace previous prompt
         await update.callback_query.answer()
         await update.callback_query.edit_message_text(msg, reply_markup=inline_markup, parse_mode="HTML")
@@ -449,11 +453,11 @@ async def Update_Command_Value (update: Update, context: ContextTypes.DEFAULT_TY
     if statusCode == 201:        
         if (not isText):            # When called from Callback -- replace previous prompt
             await update.callback_query.answer()
-            await update.callback_query.edit_message_text(text = f"✅ Done! {comd} changed to: {new_val}")
-            return await settings (update, context)           # Call settings and show Settings Menu
+            # await update.callback_query.edit_message_text(text = f"✅ Done! {comd} changed to: {new_val}")
+            return await settings (update, context, msg=f"✅ Done! <b>{comd}</b> changed to: {new_val}")           # Call settings and show Settings Menu
         else:                       # When called from _text() functions
-            await update.message.reply_text(text = f"✅ Done! {comd} changed to: {new_val}")
-            return await settings (update, context, True)     # Call settings and show Settings Menu
+            # await update.message.reply_text(text = f"✅ Done! {comd} changed to: {new_val}")
+            return await settings (update, context, msg=f"✅ Done! <b>{comd}</b> changed to: {new_val}", isText=True)     # Call settings and show Settings Menu
     else:
         logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', chat_id, "setting could not be updated")
         return await comd_try_again(update, "⚠ Oops! Unexpected Error Occured. 😟", callback_val, isText)
@@ -745,7 +749,7 @@ Select <b>Help</b> to know more.
         , parse_mode='HTML'
 )
     #* Show Settings Menu
-    return await settings (update, context, True)
+    return await settings (update, context, isText=True)
 
 #? Display Contact Info
 async def contact (update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -867,7 +871,7 @@ def main():
                 CallbackQueryHandler(CurrentSettings, pattern='^' + str(FIVE) + '$'),               # Show Current Settings Message
                 CallbackQueryHandler(default, pattern='^' + str(SIX) + '$'),                        # Show Default Settings Message
                 CallbackQueryHandler(commands, pattern='^' + str(SEVEN) + '$'),                     # Show Command (Get Info) Message
-                CallbackQueryHandler(contact, pattern='^' + str(EIGHT) + '$')                       # Show Contact Screen
+                # CallbackQueryHandler(contact, pattern='^' + str(EIGHT) + '$')                       # Show Contact Screen
             ],
             CHAT: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, chat_intial),       # only messages and 'NOT'(~) commands

@@ -60,8 +60,9 @@ async def input_commands_flt (update: Update, comd):
     inline_keyboard.append([InlineKeyboardButton("❌CANCEL", callback_data=str(CANCELOPT-1))])
     await update.callback_query.answer()
     await update.callback_query.edit_message_text(
-        f"• Select from one of the Options available.\n• Or send a value between {raw_available_options[0]} and {raw_available_options[1]}",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard)
+        f"• Select <b>{comd}</b> from one of the Options available.\n• Or send a value between {raw_available_options[0]} and {raw_available_options[1]}",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard),
+        parse_mode= 'HTML'
     )
 
 async def temperature (update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -80,7 +81,7 @@ async def presence_penalty (update: Update, context: ContextTypes.DEFAULT_TYPE):
     await input_commands_flt (update, 'presence_penalty')
     return PRES_PENAL
 
-async def input_commands_int (update: Update, raw_available_options):
+async def input_commands_int (update: Update, raw_available_options, comd):
     from numpy import linspace
     inline_keyboard = []
     available_options = list(linspace(raw_available_options[0],raw_available_options[1],6))
@@ -97,8 +98,9 @@ async def input_commands_int (update: Update, raw_available_options):
     inline_keyboard.append([InlineKeyboardButton("❌CANCEL", callback_data=str(CANCELOPT-1))])
     await update.callback_query.answer()
     await update.callback_query.edit_message_text(
-        f"• Select from one of the Options available.\n• Or send a value between {raw_available_options[0]} and {raw_available_options[1]}",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard)
+        f"• Select <b>{comd}</b> from one of the Options available.\n• Or send a value between {raw_available_options[0]} and {raw_available_options[1]}",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard),
+        parse_mode= 'HTML'
     )
     
 async def max_length (update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -109,18 +111,18 @@ async def max_length (update: Update, context: ContextTypes.DEFAULT_TYPE):
     curr_model = json.loads(await get_user_setting_api(chat_id, sett='model')).get('settings')
     if (curr_model == "text-davinci-003"): available_options[1] = 4096
     
-    await input_commands_int (update, available_options)
+    await input_commands_int (update, available_options, 'max_length')
     
     return MAX_LENGTH
 
 async def best_of (update: Update, context: ContextTypes.DEFAULT_TYPE):
     available_options = [1,20]
-    await input_commands_int (update, available_options)
+    await input_commands_int (update, available_options, 'best_of')
     return BEST_OF
 
 async def n (update: Update, context: ContextTypes.DEFAULT_TYPE):
     available_options = [1,20] 
-    await input_commands_int (update, available_options)    
+    await input_commands_int (update, available_options, 'n')    
     return N
 
 async def stop (update: Update, context: ContextTypes.DEFAULT_TYPE):

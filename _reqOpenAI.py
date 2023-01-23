@@ -202,7 +202,8 @@ async def request_image(user_text, chat_id):
         {
             "prompt": user_text,
             "num_images":1,
-            "size":"1024x1024",
+            # "size":"1024x1024",
+            "size":"512x512",
             "user": 'user' + chat_id
         }
     )
