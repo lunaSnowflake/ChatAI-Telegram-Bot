@@ -762,15 +762,7 @@ async def contact (update: Update, context: ContextTypes.DEFAULT_TYPE):
     #* Show Main Menu
     return await BotOptionsCallApart (update)
 
-#? Any Annnouncements
-def annouce(chat_id, text):
-    try:
-        bot.send_message(chat_id=chat_id, text = text)
-        print("Done! ", chat_id)
-        return True
-    except:
-        return False
-    
+#? Any Annnouncements    
 def anouncements(anouncement = False):
     #*********** Send Anouncement to all users! ******************
     if anouncement:
@@ -786,6 +778,14 @@ def anouncements(anouncement = False):
             if annouce(chat_id, text): n += 1
             else: continue
         print(f"Out of {len(chat_ids)} users, Message Recieved by: {n} users.")
+        
+def annouce(chat_id, text):
+    try:
+        bot.send_message(chat_id=chat_id, text = text)
+        print("Done! ", chat_id)
+        return True
+    except:
+        return False
 
 def reBot(reboot=False):
     if reboot:
