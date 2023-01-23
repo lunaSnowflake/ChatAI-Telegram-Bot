@@ -787,6 +787,7 @@ def annouce(chat_id, text):
     except:
         return False
 
+#? Reboot the bot
 def reBot(reboot=False):
     if reboot:
         print("Sending New Menu -- Reboot")
