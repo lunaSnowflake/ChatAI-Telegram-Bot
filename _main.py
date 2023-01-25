@@ -192,9 +192,9 @@ async def new_user (update: Update):
     return True
   
 #? Used when /start or any random user message is send -- Text Message
-async def BotOptions (update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def BotOptions (update: Update, context: ContextTypes.DEFAULT_TYPE, text="Choose What You Would Like To Do? 😀"):
     #* PROMPT
-    await update.message.reply_text("Choose What You Would Like To Do? 😀", reply_markup=InlineKeyboardMarkup(Main_Menu_Buttons))
+    await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(Main_Menu_Buttons))
     #* Un-pin all messages from chat
     chat_id = str(update.message.from_user.id)
     await bot.unpin_all_chat_messages(chat_id=chat_id)
@@ -202,10 +202,10 @@ async def BotOptions (update: Update, context: ContextTypes.DEFAULT_TYPE):
     return MAIN
 
 #? When Setting Canceled is pressed -- Callback
-async def BotOptionsCallBack (update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def BotOptionsCallBack (update: Update, context: ContextTypes.DEFAULT_TYPE, text="Choose What You Would Like To Do? 😀"):
     #* PROMPT
     await update.callback_query.answer()
-    await update.callback_query.edit_message_text("Choose What You Would Like To Do? 😀", reply_markup=InlineKeyboardMarkup(Main_Menu_Buttons))
+    await update.callback_query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(Main_Menu_Buttons))
     #* Un-pin all messages from chat
     chat_id = str(update.callback_query.from_user.id)
     await bot.unpin_all_chat_messages(chat_id=chat_id)
@@ -213,10 +213,10 @@ async def BotOptionsCallBack (update: Update, context: ContextTypes.DEFAULT_TYPE
     return MAIN
 
 #? Generate in separate message -- Callback
-async def BotOptionsCallApart (update: Update):
+async def BotOptionsCallApart (update: Update, text="Choose What You Would Like To Do? 😀"):
     #* PROMPT
     await update.callback_query.answer()
-    await update.callback_query.message.reply_text("Choose What You Would Like To Do? 😀", reply_markup=InlineKeyboardMarkup(Main_Menu_Buttons))
+    await update.callback_query.message.reply_text(text, reply_markup=InlineKeyboardMarkup(Main_Menu_Buttons))
     #* Un-pin all messages from chat
     chat_id = str(update.callback_query.from_user.id)
     await bot.unpin_all_chat_messages(chat_id=chat_id)
@@ -822,6 +822,13 @@ async def error_han(update, context):
     try:
         chat_id = str(update.message.from_user.id)
         logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', chat_id, context.error)
+        #* Send developer that retry was successful
+        context.bot.send_message(chat_id=DEVELOPER_CHAT_ID, text="!!Done Retrying Error!!", parse_mode="HTML")
+        #* show menu to user
+        try:
+            return await BotOptions (update, context, "Oops something went wrong!🤔\nPlease try again!")
+        except:
+            return await BotOptionsCallApart (update, "Oops something went wrong!🤔\nPlease try again!")
     except:
         logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', '<no chat_id>', context.error)
     try:
