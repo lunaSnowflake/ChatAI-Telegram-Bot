@@ -826,9 +826,9 @@ async def error_han(update, context):
         context.bot.send_message(chat_id=DEVELOPER_CHAT_ID, text="!!Done Retrying Error!!", parse_mode="HTML")
         #* show menu to user
         try:
-            return await BotOptions (update, context, "Oops something went wrong!🤔\nPlease try again!")
+            return await BotOptions (update, context, "Oops something went wrong!🤔\nPlease try again!\nUse /menu")
         except:
-            return await BotOptionsCallApart (update, "Oops something went wrong!🤔\nPlease try again!")
+            return await BotOptionsCallApart (update, "Oops something went wrong!🤔\nPlease try again!\nUse /menu")
     except:
         logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', '<no chat_id>', context.error)
     try:
