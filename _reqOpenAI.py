@@ -1,12 +1,13 @@
 from telegram import Update
 from decouple import config
 import aiohttp
-from datetime import datetime
+from datetime import datetime, timezone
 
 from ChatAPI_req import *
 
 #********************************************* Send the Requests to OPENAI *************************************************
-api_key = config('OPENAI_API_KEY')
+# api_key = config('OPENAI_API_KEY')
+api_key = config('OPENAI_API_KEY_4')
     
 #? Check if user don't send OpenAI requests more than max limit
 async def check_req_validity(data, chat_id):
@@ -16,13 +17,16 @@ async def check_req_validity(data, chat_id):
     # Update json object
     lt_req = data.get('last_openai_req')
     lt_req = datetime.strptime(lt_req, '%Y-%m-%d %H:%M:%S').date()
-    today = datetime.now().date()
+    dt = datetime.now(timezone.utc)
+    utc_time = dt.replace(tzinfo=None)
+    today = utc_time.date()
     settings = {}
     settings["total_queries"] = str(int(data.get('total_queries')) + 1)
     if (today > lt_req):                                                    #? Check last request time if it was not made today
         settings["num_openai_req"] = "0"
+        data["num_openai_req"] = "0"
     
-    settings["last_openai_req"] = datetime.now().isoformat(sep=" ", timespec="seconds")
+    settings["last_openai_req"] = utc_time.isoformat(sep=" ", timespec="seconds")
     if (int(data.get('num_openai_req')) >= req_limit):                       #? Check number of requests
         status = False
     else:
