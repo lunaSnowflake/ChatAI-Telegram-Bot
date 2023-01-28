@@ -72,13 +72,15 @@ async def new_user (update: Update):
                 username = update.message.chat.username
                 first_name = update.message.chat.first_name
                 last_name = update.message.chat.last_name
-                from datetime import datetime
+                from datetime import datetime, timezone
+                dt = datetime.now(timezone.utc)
+                utc_time = dt.replace(tzinfo=None)
                 UserInfo = {
                     'type': type,
                     'username': username,
                     'first_name': first_name,
                     'last_name': last_name,
-                    'time': str(datetime.now())
+                    'time': str(utc_time)
                 }
                 #* Add User
                 info_data[chat_id] = UserInfo
