@@ -126,7 +126,8 @@ Main_Menu_Buttons = [
     ],
     [
         InlineKeyboardButton("💡Command Info", callback_data=str(SEVEN)),
-        InlineKeyboardButton("❤ Feedback", url='https://i77ync387yc.typeform.com/to/qjCe8vk9')
+        InlineKeyboardButton("❤ Feedback", url='https://bit.ly/ChatAIform')
+        # InlineKeyboardButton("❤ Feedback", url='https://i77ync387yc.typeform.com/to/qjCe8vk9')
     ],
     [
         InlineKeyboardButton("🔸 ChatAI", url='https://chatai.typedream.app/')
