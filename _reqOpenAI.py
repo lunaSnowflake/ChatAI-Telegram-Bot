@@ -11,7 +11,7 @@ api_key = config('OPENAI_API_KEY_4')
     
 #? Check if user don't send OpenAI requests more than max limit
 async def check_req_validity(data, chat_id):
-    req_limit = 50
+    req_limit = 20
     status = False
     
     # Update json object
