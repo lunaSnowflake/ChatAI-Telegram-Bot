@@ -762,60 +762,6 @@ async def contact (update: Update, context: ContextTypes.DEFAULT_TYPE):
     #* Show Main Menu
     return await BotOptionsCallApart (update)
 
-#? Any Annnouncements    
-def anouncements(anouncement = False):
-    #*********** Send Anouncement to all users! ******************
-    if anouncement:
-        text = ""
-        # User Chat_id
-        filename = '_usersInfo.json'
-        with open(filename, "r") as file:
-            data = json.load(file)
-        chat_ids = data.keys()
-        # Send Messages
-        n = 0
-        for chat_id in chat_ids:
-            if annouce(chat_id, text): n += 1
-            else: continue
-        print(f"Out of {len(chat_ids)} users, Message Recieved by: {n} users.")
-        
-def annouce(chat_id, text):
-    try:
-        bot.send_message(chat_id=chat_id, text = text)
-        print("Done! ", chat_id)
-        return True
-    except:
-        return False
-
-#? Reboot the bot
-def reBot(reboot=False):
-    if reboot:
-        print("Sending New Menu -- Reboot")
-        # User Chat_id
-        filename = '_usersInfo.json'
-        with open(filename, "r") as file:
-            data = json.load(file)
-        chat_ids = data.keys()
-        # Send Messages
-        n = 0
-        for chat_id in chat_ids:
-        # chat_id = "844328819"
-            try:
-                bot.send_message(
-                    chat_id = chat_id, 
-                    text='''
-🔸🔸🔸🔸🔸🔸🔸🔸🔸🔸🔸🔸
-What would you like to do Today? 😀
-Use /start to start!
-🔸🔸🔸🔸🔸🔸🔸🔸🔸🔸🔸🔸
-'''
-                )
-                bot.unpin_all_chat_messages(chat_id=chat_id)
-                print("Done! ", chat_id)
-                n += 1
-            except: continue
-        print(f"Out of {len(chat_ids)} users, Message Recieved by: {n} users.")
-
 #? Error Handler  
 async def error_han(update, context):
     """Log Errors caused by Updates."""
@@ -857,12 +803,6 @@ def main():
     #* By using Persistence, it is possible to keep inline buttons usable
     persistence = PicklePersistence(filepath='ChatAI_conversation')
     application = Application.builder().token(BOT_TOKEN).persistence(persistence).build()
-    
-    #* Send Anouncement to all users!
-    anouncements(False)
-    
-    #* Restart the Bot
-    reBot(False)
     
     #* When bot is started
     load_commands_text()
