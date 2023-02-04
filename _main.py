@@ -805,7 +805,7 @@ async def error_han(update, context):
 def main():
     #* By using Persistence, it is possible to keep inline buttons usable
     persistence = PicklePersistence(filepath='ChatAI_conversation')
-    application = Application.builder().token(BOT_TOKEN).persistence(persistence).build()
+    application = Application.builder().token(BOT_TOKEN).concurrent_updates(True).persistence(persistence).build()
     
     #* When bot is started
     load_commands_text()
@@ -902,7 +902,7 @@ def main():
         # run_async=True,
         fallbacks=[
             CommandHandler(['start', 'menu'], BotOptions),
-            MessageHandler(filters.Text, BotOptions)
+            MessageHandler(filters.TEXT, BotOptions)
         ]
     )
     application.add_handler(conv_handler)
@@ -947,9 +947,8 @@ if __name__ == '__main__':
 
 
 
-# BOT_TOKEN = config('TELE_BOT_API_KEY_2')
 
-# #* By using Persistence, it is possible to keep inline buttons usable even after the bot got shutdown
+# #* By using Persistence, it is possible to keep inline buttons usable even after the bot got shutdown as it stores the DATA FOR EACH USER
 # persistence = PicklePersistence(filepath='AysncChatAI_conv')
 # application = Application.builder().token(BOT_TOKEN).persistence(persistence).build()
 
@@ -980,3 +979,105 @@ if __name__ == '__main__':
 #     finally:
 #         # Close the event loop and clean up
 #         loop.close()
+
+
+#* Concurrency on each Handler level -- block=False
+#*
+    # conv_handler = ConversationHandler(
+    #     entry_points=[CommandHandler('start', start)],
+    #     states={
+    #         MAIN: [
+    #             CallbackQueryHandler(chat, pattern='^' + str(ONE) + '$', block=False),                           # Start Text Generation
+    #             CallbackQueryHandler(image, pattern='^' + str(TWO) + '$', block=False),                          # Start Image Generation
+    #             CallbackQueryHandler(help, pattern='^' + str(THREE) + '$', block=False),                         # Show Help Message
+    #             CallbackQueryHandler(settings, pattern='^' + str(FOUR) + '$', block=False),                      # Settings Menu
+    #             CallbackQueryHandler(CurrentSettings, pattern='^' + str(FIVE) + '$', block=False),               # Show Current Settings Message
+    #             CallbackQueryHandler(default, pattern='^' + str(SIX) + '$', block=False),                        # Show Default Settings Message
+    #             CallbackQueryHandler(commands, pattern='^' + str(SEVEN) + '$', block=False),                     # Show Command (Get Info) Message
+    #             # CallbackQueryHandler(contact, pattern='^' + str(EIGHT) + '$', block=False)                       # Show Contact Screen
+    #         ],
+    #         CHAT: [
+    #             MessageHandler(filters.TEXT & ~filters.COMMAND, chat_intial, block=False),       # only messages and 'NOT'(~) commands
+    #             CallbackQueryHandler(TerminateOpenAI, pattern='^' + str(CANCELOPT) + '$', block=False)           # Main Menu
+    #         ],
+    #         IMAGE: [
+    #             MessageHandler(filters.TEXT & ~filters.COMMAND, image_intial, block=False),      #only messages and 'NOT'(~) commands
+    #             CallbackQueryHandler(TerminateOpenAI, pattern='^' + str(CANCELOPT) + '$', block=False)           # Main Menu
+    #         ],
+    #         SETTINGS: [
+    #             CallbackQueryHandler(model, pattern='^' + str(ONE) + '$', block=False),                          # Model Screen
+    #             CallbackQueryHandler(temperature, pattern='^' + str(TWO) + '$', block=False),                    # Temperature Screen
+    #             CallbackQueryHandler(max_length, pattern='^' + str(THREE) + '$', block=False),                   # Max_Length Screen
+    #             CallbackQueryHandler(stop, pattern='^' + str(FOUR) + '$', block=False),                          # Stop Screen
+    #             CallbackQueryHandler(top_p, pattern='^' + str(FIVE) + '$', block=False),                         # Top_p Screen
+    #             CallbackQueryHandler(frequency_penalty, pattern='^' + str(SIX) + '$', block=False),              # Frequency Screen
+    #             CallbackQueryHandler(presence_penalty, pattern='^' + str(SEVEN) + '$', block=False),             # Presence Screen
+    #             CallbackQueryHandler(best_of, pattern='^' + str(EIGHT) + '$', block=False),                      # Best_of Screen
+    #             CallbackQueryHandler(n, pattern='^' + str(NINE) + '$', block=False),                             # N Screen
+    #             CallbackQueryHandler(gen_probs, pattern='^' + str(TEN) + '$', block=False),                      # Gen_Probs Screen
+    #             CallbackQueryHandler(commands, pattern='^' + str(ELEVEN) + '$', block=False),                    # Show Command (Get Info) Message
+    #             CallbackQueryHandler(BotOptionsCallBack, pattern='^' + str(CANCELOPT) + '$', block=False),       # Main Menu
+    #             CallbackQueryHandler(settings, pattern='^' + str(CANCELOPT-1) + '$', block=False)                # Settings Menu
+    #         ],
+    #         MODEL: [
+    #             CallbackQueryHandler(settings, pattern='^' + str(CANCELOPT-1) + '$', block=False),               # Settings Menu (the handler's presedence is imp.)
+    #             CallbackQueryHandler(model_update, block=False),                                                 # This CallbackQueryHandler will handle any button pressed
+    #             MessageHandler(filters.TEXT & ~filters.COMMAND, model_update_text, block=False)                  # Any text input will be handled here
+    #         ],
+    #         TEMP: [
+    #             CallbackQueryHandler(settings, pattern='^' + str(CANCELOPT-1) + '$', block=False),
+    #             CallbackQueryHandler(temp_update, block=False), 
+    #             MessageHandler(filters.TEXT & ~filters.COMMAND, temp_update_text, block=False)
+    #         ],
+    #         MAX_LENGTH: [
+    #             CallbackQueryHandler(settings, pattern='^' + str(CANCELOPT-1) + '$', block=False),
+    #             CallbackQueryHandler(max_len_update, block=False), 
+    #             MessageHandler(filters.TEXT & ~filters.COMMAND, max_len_update_text, block=False)
+    #         ],
+    #         STOP: [
+    #             CallbackQueryHandler(settings, pattern='^' + str(CANCELOPT-1) + '$', block=False),
+    #             MessageHandler(filters.TEXT & ~filters.COMMAND, stop_update_text, block=False)
+    #         ],
+    #         TOP_P: [
+    #             CallbackQueryHandler(settings, pattern='^' + str(CANCELOPT-1) + '$', block=False), 
+    #             CallbackQueryHandler(top_p_update, block=False), 
+    #             MessageHandler(filters.TEXT & ~filters.COMMAND, top_p_update_text, block=False)
+    #         ],
+    #         FREQ_PENAL: [
+    #             CallbackQueryHandler(settings, pattern='^' + str(CANCELOPT-1) + '$', block=False), 
+    #             CallbackQueryHandler(freq_penal_update, block=False),
+    #             MessageHandler(filters.TEXT & ~filters.COMMAND, freq_penal_update_text, block=False)
+    #         ],
+    #         PRES_PENAL: [
+    #             CallbackQueryHandler(settings, pattern='^' + str(CANCELOPT-1) + '$', block=False), 
+    #             CallbackQueryHandler(pres_penal_update, block=False), 
+    #             MessageHandler(filters.TEXT & ~filters.COMMAND, pres_penal_update_text, block=False)
+    #         ],
+    #         BEST_OF: [
+    #             CallbackQueryHandler(settings, pattern='^' + str(CANCELOPT-1) + '$', block=False), 
+    #             CallbackQueryHandler(best_of_update, block=False), 
+    #             MessageHandler(filters.TEXT & ~filters.COMMAND, best_of_update_text, block=False)
+    #         ],
+    #         N: [
+    #             CallbackQueryHandler(settings, pattern='^' + str(CANCELOPT-1) + '$', block=False), 
+    #             CallbackQueryHandler(n_update, block=False), 
+    #             MessageHandler(filters.TEXT & ~filters.COMMAND, n_update_text, block=False)
+    #         ],
+    #         GEN_PROBS: [
+    #             CallbackQueryHandler(settings, pattern='^' + str(CANCELOPT-1) + '$', block=False), 
+    #             CallbackQueryHandler(gen_probs_update, block=False),
+    #             MessageHandler(filters.TEXT & ~filters.COMMAND, gen_probs_update_text, block=False)
+    #         ]
+    #     },
+    #     name="my_conversation",
+    #     persistent=True,
+    #     # run_async=True,
+    #     fallbacks=[
+    #         CommandHandler(['start', 'menu'], BotOptions, block=False),
+    #         MessageHandler(filters.Text, BotOptions, block=False)
+    #     ]
+    # )
+    # application.add_handler(conv_handler)
+    
+    # #* Inline Query
+    # application.add_handler(InlineQueryHandler(inline_query_initial, block=False))
