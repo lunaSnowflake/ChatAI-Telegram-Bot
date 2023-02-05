@@ -804,6 +804,8 @@ async def error_han(update, context):
 ##******************************************************* MAIN FUNCTION ******************************************************
 def main():
     #* By using Persistence, it is possible to keep inline buttons usable
+    #* The telegram will store all the data in the "context", but this data will be erased if bot is stopped. 
+    #* To avoid losing the data, we can store the data in a file using PicklePersistence.
     persistence = PicklePersistence(filepath='ChatAI_conversation')
     application = Application.builder().token(BOT_TOKEN).concurrent_updates(True).persistence(persistence).build()
     
