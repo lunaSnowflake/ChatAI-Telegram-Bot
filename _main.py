@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 #! Bot API Key  -- using environment variable (from .env file) to avoid exposing the API key in the code
 from decouple import config
 BOT_TOKEN = config('TELE_BOT_API_KEY_3')
-# BOT_TOKEN = config('TELE_BOT_API_KEY_2')
+# BOT_TOKEN = config('TELE_BOT_API_KEY_2')  #ChatAI
 bot = Bot(BOT_TOKEN)
 
 #* Global Variables
