@@ -50,66 +50,6 @@ def load_commands_text():
                 text = text + '• ' + '<b>' + key.title() + '</b>' + ' - ' + my_data[Mkey][key][0] + '\n'
             COM_TXT.append(text)
 
-#? Add To User Info to Database (if new-user)
-async def new_user (update: Update):
-    chat_id = str(update.message.from_user.id)
-    try:
-        #* User DataBase
-        import json
-        with open("_usersInfo.json", "r") as file:
-            info_data = json.load(file)
-        backup_info_data = info_data
-        
-        #* User Default Settings
-        with open('_userSettings.json', "r") as file:
-            sett_data = json.load(file)
-        backup_sett_data = sett_data
-        try:
-            #* Check if user already exist in database
-            if (info_data.get(chat_id) is None):
-                #* User Info
-                type = update.message.chat.type
-                username = update.message.chat.username
-                first_name = update.message.chat.first_name
-                last_name = update.message.chat.last_name
-                from datetime import datetime, timezone
-                dt = datetime.now(timezone.utc)
-                utc_time = dt.replace(tzinfo=None)
-                UserInfo = {
-                    'type': type,
-                    'username': username,
-                    'first_name': first_name,
-                    'last_name': last_name,
-                    'time': str(utc_time)
-                }
-                #* Add User
-                info_data[chat_id] = UserInfo
-                with open("_usersInfo.json", 'w') as file:
-                    json.dump(info_data, file, indent=4)
-                    
-                #* Give the User (New) Default Settings
-                sett_data[chat_id] = sett_data['defualt_settings']
-                with open('_userSettings.json', "w") as file:
-                    json.dump(sett_data, file, indent=4)
-                
-                #* Prompt to User
-                await update.message.reply_text(f"Welcome {first_name}! 😀")                                              # Welcome User
-            else:
-                #* Prompt to User
-                await update.message.reply_text(f"Welcome Back {info_data[chat_id]['first_name']}! 😀")                   # Welcome User
-        except Exception as err:
-            logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', chat_id, str(err))
-            #! Incase something went wrong use we won't lose our user's Information (and Settings)
-            with open("_usersInfo.json", 'w') as file:
-                json.dump(backup_info_data, file, indent=4)
-            with open('_userSettings.json', "w") as file:
-                json.dump(backup_sett_data, file, indent=4)
-            return False
-    except Exception as err:
-        logger.warning('UPDATE: "%s" \nCAUSED ERROR: "%s"', chat_id, str(err))
-        return False
-    return True
-
 #* Main Menu Keyboard (Inline)
 Main_Menu_Buttons = [
     [
@@ -904,7 +844,7 @@ def main():
         # run_async=True,
         fallbacks=[
             CommandHandler(['start', 'menu'], BotOptions),
-            MessageHandler(filters.TEXT, BotOptions)
+            MessageHandler(filters.TEXT & ~filters.COMMAND, BotOptions)
         ]
     )
     application.add_handler(conv_handler)
