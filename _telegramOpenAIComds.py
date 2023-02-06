@@ -8,7 +8,7 @@ from ChatAPI_req import *
 
 #*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 #* Stages
-MAIN, CHAT, CHAT_TRY_AGAIN, IMAGE, IMAGE_TRY_AGAIN, SETTINGS, MODEL, TEMP, MAX_LENGTH, STOP, TOP_P, FREQ_PENAL, PRES_PENAL, BEST_OF, N, GEN_PROBS = range(16)
+MAIN, CHAT, CHAT_TRY_AGAIN, IMAGE, IMAGE_TRY_AGAIN, SETTINGS, MODEL, TEMP, MAX_LENGTH, STOP, TOP_P, FREQ_PENAL, PRES_PENAL, BEST_OF, N, GEN_PROBS, INIT_GROUP = range(17)
 #* Callback data
 ONE, TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE, TEN, ELEVEN = range(11)
 #* Cancel Button (random big value is assigned -- MinInt)
