@@ -127,7 +127,7 @@ async def request_completions(user_text, chat_id, data, is_defualt=False):
     
     # Set the request body
     if (not is_defualt):
-        data = json.dumps(
+        body = json.dumps(
             {
                 "model": model,
                 "prompt": user_text,
@@ -144,7 +144,7 @@ async def request_completions(user_text, chat_id, data, is_defualt=False):
             }
         )
     else:
-        data = """
+        body = """
         {
             "model": "%s",
             "prompt": "%s",
@@ -154,7 +154,7 @@ async def request_completions(user_text, chat_id, data, is_defualt=False):
     # Create an async session
     async with aiohttp.ClientSession() as session:
         # Make the request to the API using the session's post() method
-        async with session.post(api_endpoint, headers=headers, data=data) as response:
+        async with session.post(api_endpoint, headers=headers, data=body) as response:
             # Check the status code of the response
             if response.status == 200:
                 completions = await response.json()
@@ -202,7 +202,7 @@ async def request_image(user_text, chat_id):
     }
 
     # Set the request body
-    data = json.dumps(
+    body = json.dumps(
         {
             "prompt": user_text,
             "num_images":1,
@@ -214,7 +214,7 @@ async def request_image(user_text, chat_id):
 
     # Send the request
     async with aiohttp.ClientSession() as session:
-        async with session.post(endpoint, headers=headers, data=data) as response:
+        async with session.post(endpoint, headers=headers, data=body) as response:
             # Check the status code
             if response.status == 200:
                 return await response.json()
