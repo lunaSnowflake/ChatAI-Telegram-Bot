@@ -18,6 +18,10 @@ import os
 import html
 import traceback
 
+from telegram import Chat
+from telegram.ext import ChatMemberHandler
+from group_handler_bot import update_chat_members, group_update, send_group_intro
+
 from _telegramOpenAIComds import *
 from _reqOpenAI import send_req_openai_chat, send_req_openai_image
 from _BotInlineQuery import inline_query_initial
@@ -30,7 +34,7 @@ logger = logging.getLogger(__name__)
 #! Bot API Key  -- using environment variable (from .env file) to avoid exposing the API key in the code
 from decouple import config
 BOT_TOKEN = config('TELE_BOT_API_KEY_3')
-# BOT_TOKEN = config('TELE_BOT_API_KEY_2')  #ChatAI
+# BOT_TOKEN = config('TELE_BOT_API_KEY_2') #ChatAI
 bot = Bot(BOT_TOKEN)
 
 #* Global Variables
@@ -69,7 +73,6 @@ Main_Menu_Buttons = [
     [
         InlineKeyboardButton("💡Command Info", callback_data=str(SEVEN)),
         InlineKeyboardButton("❤ Feedback", url='https://bit.ly/ChatAIform')
-        # InlineKeyboardButton("❤ Feedback", url='https://i77ync387yc.typeform.com/to/qjCe8vk9')
     ],
     [
         InlineKeyboardButton("🔸 ChatAI", url='https://chatai.typedream.app/')
@@ -138,7 +141,7 @@ async def BotOptionsCallApart (update: Update, text="Choose What You Would Like 
     return MAIN
 
 #? Add To User Info to Database (if new-user)
-async def new_user (update: Update):
+async def new_user (update: Update, is_group=False):
     chat_id = str(update.message.from_user.id)
     statusCode = await new_user_api(update, chat_id)
     
@@ -147,13 +150,13 @@ async def new_user (update: Update):
     if statusCode == 201:               # User Added
         isnewlyadded = True
     elif statusCode == 409:             # User Already Exist
+        if is_group: return
         isnewlyadded = False
     else:                               # Other Errors
         return False
     
     if isnewlyadded:
         logger.info(f"Starting Bot for {chat_id}")
-        # await update.message.reply_text(f"Welcome {update.message.chat.first_name}! 😀")
         await update.message.reply_text(f"Welcome {update.message.from_user.first_name}! 😀")
         #* Add Defualt setting for new User
         statusCode = await new_setting_api(chat_id)
@@ -166,9 +169,15 @@ async def new_user (update: Update):
         await update.message.reply_text(f"Welcome Back {update.message.from_user.first_name}! 😀")
     
     return True
-
+  
 #? Start
 async def start (update: Update, context: ContextTypes.DEFAULT_TYPE):
+    #* Only allow Conversation Handler in Private Chat
+    chat = update.effective_chat
+    if chat.type != Chat.PRIVATE:
+        await send_group_intro(update)
+        return ConversationHandler.END
+    
     #* Add New User
     status = await new_user(update)
     
@@ -189,7 +198,7 @@ This Bot is based on <a href='https://bit.ly/OpenAI_Introduction'>OpenAI</a>
         #* Prompt Error to User and End the Conversation
         await update.message.reply_text("⚠ Oops! Something went wrong, please try again /start")
         return ConversationHandler.END
-
+        
 #? When Help is pressed
 async def help (update: Update, context: ContextTypes.DEFAULT_TYPE):
     #* Prompt to User
@@ -741,6 +750,55 @@ async def error_han(update, context):
         # Finally, send the message (telegram has a message limit of 4096 characters).
         await context.bot.send_message(chat_id=DEVELOPER_CHAT_ID, text=message[:4096], parse_mode="HTML")
     except: pass
+        
+async def group_req_text (update: Update, context: ContextTypes.DEFAULT_TYPE):
+    #* Only Group chats are allowed to use this commands
+    chat = update.effective_chat
+    if chat.type == Chat.PRIVATE: return ConversationHandler.END
+    
+    chat_id = str(update.message.chat_id)       # or group_id
+    user_id = str(update.message.from_user.id)
+    
+    #* Add as a new user (if user already in the database nothing will change)
+    status = await new_user(update, is_group=True)
+    
+    #* Send Response
+    logger.info(f"Requesting OpenAI TextCompletion: In group:{chat_id}:{user_id}")
+    gen_msg = await update.message.reply_text("Generating...")
+        
+    text = update.message.text.partition(' ')[2]       # Input provided next to the command
+            
+    response, prob_file, num_openai_req = await send_req_openai_chat(update, text, user_id, True)
+    await bot.delete_message(chat_id=gen_msg.chat_id, message_id=gen_msg.message_id)
+    
+    await update.message.reply_text(
+        text = response,
+        disable_web_page_preview=True,
+        parse_mode='HTML'
+    )
+    
+async def group_req_img (update: Update, context: ContextTypes.DEFAULT_TYPE):
+    #* Only Group chats are allowed to use this commands
+    chat = update.effective_chat
+    if chat.type == Chat.PRIVATE: return ConversationHandler.END
+    
+    chat_id = str(update.message.chat_id)       # or group_id
+    user_id = str(update.message.from_user.id)
+    
+    #* Add as a new user (if user already in the database nothing will change)
+    status = await new_user(update, is_group=True)
+    
+    #* Send Response
+    logger.info(f"Requesting OpenAI Image Generation: In group:{chat_id}:{user_id}")
+    gen_msg = await update.message.reply_text("Generating...")
+        
+    text = update.message.text.partition(' ')[2]       # Input provided next to the command
+    
+    response, limit = await send_req_openai_image(update, text, user_id, True)
+    await bot.delete_message(chat_id=gen_msg.chat_id, message_id=gen_msg.message_id)
+    
+    if (not limit): await update.message.reply_photo(photo=response)
+    else: await update.message.reply_text(response)
     
 ##******************************************************* MAIN FUNCTION ******************************************************
 def main():
@@ -850,11 +908,17 @@ def main():
     )
     application.add_handler(conv_handler)
     
+    #* ChatAI Added to Group Update
+    application.add_handler(ChatMemberHandler(group_update, ChatMemberHandler.MY_CHAT_MEMBER))
+    #* Group Commands
+    application.add_handler(CommandHandler('text', group_req_text))
+    application.add_handler(CommandHandler('img', group_req_img))
+    
     #* Inline Query
     application.add_handler(InlineQueryHandler(inline_query_initial))
     
     #* Handle Errors
-    application.add_error_handler(error_han)
+    # application.add_error_handler(error_han)
     
     #* Open Bot to take commands
     # try:
