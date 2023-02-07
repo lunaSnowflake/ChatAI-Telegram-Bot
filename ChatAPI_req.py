@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import aiohttp
 from decouple import config
 import json
@@ -15,27 +15,31 @@ async def new_user_api (update, chat_id, try_again=False):
         'Authorization': authkey
     }
     
+    dt = datetime.now(timezone.utc)
+    utc_time = dt.replace(tzinfo=None)
+    now_time = str(utc_time.isoformat(sep=" ", timespec="seconds"))
+    
     if not try_again:
         #* Payload -- handle for null values
         UserInfo = json.dumps({
             "chat_id": chat_id,
-            "type": "" if update.message.chat.type is None else update.message.chat.type,
-            "username": "" if update.message.chat.username is None else update.message.chat.username,
-            "first_name": "" if update.message.chat.first_name is None else update.message.chat.first_name,
-            "last_name": "" if update.message.chat.last_name is None else update.message.chat.last_name,
-            "time": str(datetime.now())
+            "type": "private",
+            "username": "" if update.message.from_user.username is None else update.message.from_user.username,
+            "first_name": "" if update.message.from_user.first_name is None else update.message.from_user.first_name,
+            "last_name": "" if update.message.from_user.last_name is None else update.message.chat.last_name,
+            "time": now_time
         })
     else:
         #* Payload -- Add User With no other info  --  # Just a provision for "Invalid request body" -- if values cannot be parse to json   
         UserInfo = json.dumps({
             "chat_id": chat_id,
-            "type": "",
+            "type": "private",
             "username": "",
             "first_name": "",
             "last_name": "",
-            "time": str(datetime.now())
+            "time": now_time
         })
-
+        
     # Create an async session
     async with aiohttp.ClientSession() as session:
         # Make the request to the API using the session's post() method
