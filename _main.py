@@ -754,52 +754,60 @@ async def error_han(update, context):
 async def group_req_text (update: Update, context: ContextTypes.DEFAULT_TYPE):
     #* Only Group chats are allowed to use this commands
     chat = update.effective_chat
-    if chat.type == Chat.PRIVATE: return ConversationHandler.END
+    if chat.type == Chat.PRIVATE: return
     
-    chat_id = str(update.message.chat_id)       # or group_id
-    user_id = str(update.message.from_user.id)
-    
-    #* Add as a new user (if user already in the database nothing will change)
-    status = await new_user(update, is_group=True)
-    
-    #* Send Response
-    logger.info(f"Requesting OpenAI TextCompletion: In group:{chat_id}:{user_id}")
-    gen_msg = await update.message.reply_text("Generating...")
-        
     text = update.message.text.partition(' ')[2]       # Input provided next to the command
+    
+    if text != "":
+        chat_id = str(update.message.chat_id)       # or group_id
+        user_id = str(update.message.from_user.id)
+        
+        #* Add as a new user (if user already in the database nothing will change)
+        status = await new_user(update, is_group=True)
+        
+        #* Send Response
+        logger.info(f"Requesting OpenAI TextCompletion: In group:{chat_id}:{user_id}")
+        gen_msg = await update.message.reply_text("Generating...")
             
-    response, prob_file, num_openai_req = await send_req_openai_chat(update, text, user_id, True)
-    await bot.delete_message(chat_id=gen_msg.chat_id, message_id=gen_msg.message_id)
-    
-    await update.message.reply_text(
-        text = response,
-        disable_web_page_preview=True,
-        parse_mode='HTML'
-    )
-    
+                
+        response, prob_file, num_openai_req = await send_req_openai_chat(update, text, user_id, True)
+        await bot.delete_message(chat_id=gen_msg.chat_id, message_id=gen_msg.message_id)
+        
+        await update.message.reply_text(
+            text = response,
+            disable_web_page_preview=True,
+            parse_mode='HTML'
+        )
+    else:
+        await update.message.reply_text(text = "💡 Please write your query something like this:\n\n/text write a tagline for ice cream shop.")
+        
 async def group_req_img (update: Update, context: ContextTypes.DEFAULT_TYPE):
     #* Only Group chats are allowed to use this commands
     chat = update.effective_chat
-    if chat.type == Chat.PRIVATE: return ConversationHandler.END
+    if chat.type == Chat.PRIVATE: return
     
-    chat_id = str(update.message.chat_id)       # or group_id
-    user_id = str(update.message.from_user.id)
-    
-    #* Add as a new user (if user already in the database nothing will change)
-    status = await new_user(update, is_group=True)
-    
-    #* Send Response
-    logger.info(f"Requesting OpenAI Image Generation: In group:{chat_id}:{user_id}")
-    gen_msg = await update.message.reply_text("Generating...")
-        
     text = update.message.text.partition(' ')[2]       # Input provided next to the command
     
-    response, limit = await send_req_openai_image(update, text, user_id, True)
-    await bot.delete_message(chat_id=gen_msg.chat_id, message_id=gen_msg.message_id)
-    
-    if (not limit): await update.message.reply_photo(photo=response)
-    else: await update.message.reply_text(response)
-    
+    if text != "":
+        chat_id = str(update.message.chat_id)       # or group_id
+        user_id = str(update.message.from_user.id)
+        
+        #* Add as a new user (if user already in the database nothing will change)
+        status = await new_user(update, is_group=True)
+        
+        #* Send Response
+        logger.info(f"Requesting OpenAI Image Generation: In group:{chat_id}:{user_id}")
+        gen_msg = await update.message.reply_text("Generating...")
+            
+        
+        response, limit = await send_req_openai_image(update, text, user_id, True)
+        await bot.delete_message(chat_id=gen_msg.chat_id, message_id=gen_msg.message_id)
+        
+        if (not limit): await update.message.reply_photo(photo=response)
+        else: await update.message.reply_text(response)
+    else:
+        await update.message.reply_text(text = "💡 Please write your query something like this:\n\n/img a bird in the sky.")
+        
 ##******************************************************* MAIN FUNCTION ******************************************************
 def main():
     #* By using Persistence, it is possible to keep inline buttons usable
