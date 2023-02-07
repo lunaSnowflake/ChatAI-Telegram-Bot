@@ -121,7 +121,8 @@ async def new_user (update: Update):
     
     if isnewlyadded:
         logger.info(f"Starting Bot for {chat_id}")
-        await update.message.reply_text(f"Welcome {update.message.chat.first_name}! 😀")
+        # await update.message.reply_text(f"Welcome {update.message.chat.first_name}! 😀")
+        await update.message.reply_text(f"Welcome {update.message.from_user.first_name}! 😀")
         #* Add Defualt setting for new User
         statusCode = await new_setting_api(chat_id)
         if statusCode == 201:           # User Setting Added
@@ -130,7 +131,7 @@ async def new_user (update: Update):
             return False
     else:
         logger.info(f"Re-starting Bot for {chat_id}")
-        await update.message.reply_text(f"Welcome Back {update.message.chat.first_name}! 😀")
+        await update.message.reply_text(f"Welcome Back {update.message.from_user.first_name}! 😀")
     
     return True
   
