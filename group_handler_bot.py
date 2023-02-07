@@ -47,6 +47,7 @@ async def send_group_intro(update):
     await update.effective_chat.send_message(f'''
 Hi I am <a href='https://t.me/chaii_test_bot'>ChatAI</a>, Thanks for adding me!😊
 Let's make your group super productive. 🚀
+
 I can help you with :
 • Text Completion | 
     use: /text $your_query$
