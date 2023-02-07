@@ -104,36 +104,6 @@ Settings_Buttons = [
         InlineKeyboardButton("🏠 Main Menu", callback_data=str(CANCELOPT))
     ]
 ]
-
-#? Add To User Info to Database (if new-user)
-async def new_user (update: Update):
-    chat_id = str(update.message.from_user.id)
-    statusCode = await new_user_api(update, chat_id)
-    
-    #* Add New User
-    isnewlyadded = False
-    if statusCode == 201:               # User Added
-        isnewlyadded = True
-    elif statusCode == 409:             # User Already Exist
-        isnewlyadded = False
-    else:                               # Other Errors
-        return False
-    
-    if isnewlyadded:
-        logger.info(f"Starting Bot for {chat_id}")
-        # await update.message.reply_text(f"Welcome {update.message.chat.first_name}! 😀")
-        await update.message.reply_text(f"Welcome {update.message.from_user.first_name}! 😀")
-        #* Add Defualt setting for new User
-        statusCode = await new_setting_api(chat_id)
-        if statusCode == 201:           # User Setting Added
-            return True
-        else:
-            return False
-    else:
-        logger.info(f"Re-starting Bot for {chat_id}")
-        await update.message.reply_text(f"Welcome Back {update.message.from_user.first_name}! 😀")
-    
-    return True
   
 #? Used when /start or any random user message is send -- Text Message
 async def BotOptions (update: Update, context: ContextTypes.DEFAULT_TYPE, text="Choose What You Would Like To Do? 😀"):
@@ -166,7 +136,37 @@ async def BotOptionsCallApart (update: Update, text="Choose What You Would Like 
     await bot.unpin_all_chat_messages(chat_id=chat_id)
     #* Tell ConversationHandler that we're in state `MAIN` now
     return MAIN
+
+#? Add To User Info to Database (if new-user)
+async def new_user (update: Update):
+    chat_id = str(update.message.from_user.id)
+    statusCode = await new_user_api(update, chat_id)
     
+    #* Add New User
+    isnewlyadded = False
+    if statusCode == 201:               # User Added
+        isnewlyadded = True
+    elif statusCode == 409:             # User Already Exist
+        isnewlyadded = False
+    else:                               # Other Errors
+        return False
+    
+    if isnewlyadded:
+        logger.info(f"Starting Bot for {chat_id}")
+        # await update.message.reply_text(f"Welcome {update.message.chat.first_name}! 😀")
+        await update.message.reply_text(f"Welcome {update.message.from_user.first_name}! 😀")
+        #* Add Defualt setting for new User
+        statusCode = await new_setting_api(chat_id)
+        if statusCode == 201:           # User Setting Added
+            return True
+        else:
+            return False
+    else:
+        logger.info(f"Re-starting Bot for {chat_id}")
+        await update.message.reply_text(f"Welcome Back {update.message.from_user.first_name}! 😀")
+    
+    return True
+
 #? Start
 async def start (update: Update, context: ContextTypes.DEFAULT_TYPE):
     #* Add New User
