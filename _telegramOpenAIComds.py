@@ -3,6 +3,7 @@ from telegram.ext import ContextTypes
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 from telegram import ForceReply
 import json
+from numpy import linspace
 
 from ChatAPI_req import *
 
@@ -44,7 +45,6 @@ async def gen_probs (update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def input_commands_flt (update: Update, comd):
     with open('_Commands.json', 'r', encoding='utf-8') as f:
         my_data = json.load(f)
-    from numpy import linspace
     inline_keyboard = []
     raw_available_options = my_data["OpenAICommands"][comd][1]
     available_options = list(linspace(raw_available_options[0],raw_available_options[1],4))
@@ -82,7 +82,6 @@ async def presence_penalty (update: Update, context: ContextTypes.DEFAULT_TYPE):
     return PRES_PENAL
 
 async def input_commands_int (update: Update, raw_available_options, comd):
-    from numpy import linspace
     inline_keyboard = []
     available_options = list(linspace(raw_available_options[0],raw_available_options[1],6))
     available_options = [ int(elem) for elem in available_options ]
