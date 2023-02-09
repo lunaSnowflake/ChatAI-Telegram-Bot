@@ -957,7 +957,7 @@ def main():
     #     )
     # except Exception as err:
     #* Polling
-    logger.info("Using polling due to Error: ", err)
+    logger.info("Using polling") # due to Error: ", err)
     application.run_polling()
 
 #* Start the Bot
