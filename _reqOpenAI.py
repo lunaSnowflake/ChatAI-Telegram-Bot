@@ -7,7 +7,8 @@ from ChatAPI_req import *
 
 #********************************************* Send the Requests to OPENAI *************************************************
 # api_key = config('OPENAI_API_KEY')
-api_key = config('OPENAI_API_KEY_4')
+# api_key = config('OPENAI_API_KEY_4')
+api_key = config('OPENAI_API_KEY_5')
     
 #? Check if user don't send OpenAI requests more than max limit
 async def check_req_validity(data, chat_id):
