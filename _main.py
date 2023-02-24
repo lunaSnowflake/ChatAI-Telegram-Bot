@@ -307,10 +307,13 @@ async def openai_handler (update: Update, context: ContextTypes.DEFAULT_TYPE, ty
                     with open(prob_file, 'rb') as doc:
                         await context.bot.send_document(chat_id, doc)
                     os.remove(prob_file)        # Delete Probability File
-                #* If user's first query of the day, give a Tip to change settings
-                # num_openai_req = int(json.loads(await get_user_setting_api (chat_id, sett='num_openai_req')).get('settings'))
-                if num_openai_req == 1:
-                    await update.message.reply_text("💡Tips:\n• You can change settings for Text Generation using 'Change Settings' from Main Menu.\n• Use '🏠 Main Menu' from above pinned to go back.")
+                #* If user's first query of the day, give a Tip
+                # if num_openai_req == 1:
+                if num_openai_req%5 == 0:
+                    # text = "💡Tips:\n• You can change settings for Text Generation using 'Change Settings' from Main Menu.\n• Use '🏠 Main Menu' from above pinned to go back."
+                    text = "<a href='https://www.buymeacoffee.com/chataibot'>Donate ❤</a> to help ChatAI thrive! 😊"
+                    # text = "Find us on <a href='https://www.producthunt.com/posts/chatai'>ProductHunt</a>"
+                    await update.message.reply_text(text, parse_mode="HTML")
         #* Send Image OpenAI request
         else:
             #* The maximum length is 1000 characters. (950 for buffer)
@@ -810,7 +813,13 @@ async def group_req_img (update: Update, context: ContextTypes.DEFAULT_TYPE):
         else: await update.message.reply_text(response)
     else:
         await update.message.reply_text(text = "💡 Please write your query something like this:\n\n/img a bird in the sky.")
-        
+
+# You can send a main menu, but remember to change the Pickle File "ChatAI_conversation"
+# async def rebot(is_reboot=False):
+#     text="Choose What You Would Like To Do? 😀"
+#     response = await bot.send_message(chat_id="5799361567", text=text, reply_markup=InlineKeyboardMarkup(Main_Menu_Buttons))
+#     print(response)
+    
 ##******************************************************* MAIN FUNCTION ******************************************************
 def main():
     #* By using Persistence, it is possible to keep inline buttons usable
@@ -822,8 +831,118 @@ def main():
     
     #* When bot is started
     load_commands_text()
-
+    
     #* Handle Conversation
+    conv_handler = ConversationHandler(
+        entry_points=[CommandHandler('start', start)],
+        states={
+            MAIN: [
+                CallbackQueryHandler(chat, pattern='^' + str(ONE) + '$'),                           # Start Text Generation
+                CallbackQueryHandler(image, pattern='^' + str(TWO) + '$'),                          # Start Image Generation
+                CallbackQueryHandler(help, pattern='^' + str(THREE) + '$'),                         # Show Help Message
+                CallbackQueryHandler(settings, pattern='^' + str(FOUR) + '$'),                      # Settings Menu
+                CallbackQueryHandler(CurrentSettings, pattern='^' + str(FIVE) + '$'),               # Show Current Settings Message
+                CallbackQueryHandler(default, pattern='^' + str(SIX) + '$'),                        # Show Default Settings Message
+                CallbackQueryHandler(commands, pattern='^' + str(SEVEN) + '$'),                     # Show Command (Get Info) Message
+                # CallbackQueryHandler(contact, pattern='^' + str(EIGHT) + '$')                       # Show Contact Screen
+            ],
+            CHAT: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, chat_intial),       # only messages and 'NOT'(~) commands
+                CallbackQueryHandler(TerminateOpenAI, pattern='^' + str(CANCELOPT) + '$')           # Main Menu
+            ],
+            IMAGE: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, image_intial),      #only messages and 'NOT'(~) commands
+                CallbackQueryHandler(TerminateOpenAI, pattern='^' + str(CANCELOPT) + '$')           # Main Menu
+            ],
+            SETTINGS: [
+                CallbackQueryHandler(model, pattern='^' + str(ONE) + '$'),                          # Model Screen
+                CallbackQueryHandler(temperature, pattern='^' + str(TWO) + '$'),                    # Temperature Screen
+                CallbackQueryHandler(max_length, pattern='^' + str(THREE) + '$'),                   # Max_Length Screen
+                CallbackQueryHandler(stop, pattern='^' + str(FOUR) + '$'),                          # Stop Screen
+                CallbackQueryHandler(top_p, pattern='^' + str(FIVE) + '$'),                         # Top_p Screen
+                CallbackQueryHandler(frequency_penalty, pattern='^' + str(SIX) + '$'),              # Frequency Screen
+                CallbackQueryHandler(presence_penalty, pattern='^' + str(SEVEN) + '$'),             # Presence Screen
+                CallbackQueryHandler(best_of, pattern='^' + str(EIGHT) + '$'),                      # Best_of Screen
+                CallbackQueryHandler(n, pattern='^' + str(NINE) + '$'),                             # N Screen
+                CallbackQueryHandler(gen_probs, pattern='^' + str(TEN) + '$'),                      # Gen_Probs Screen
+                CallbackQueryHandler(commands, pattern='^' + str(ELEVEN) + '$'),                    # Show Command (Get Info) Message
+                CallbackQueryHandler(BotOptionsCallBack, pattern='^' + str(CANCELOPT) + '$'),       # Main Menu
+                CallbackQueryHandler(settings, pattern='^' + str(CANCELOPT-1) + '$')                # Settings Menu
+            ],
+            MODEL: [
+                CallbackQueryHandler(settings, pattern='^' + str(CANCELOPT-1) + '$'),               # Settings Menu (the handler's presedence is imp.)
+                CallbackQueryHandler(model_update),                                                 # This CallbackQueryHandler will handle "ANY" button pressed
+                MessageHandler(filters.TEXT & ~filters.COMMAND, model_update_text)                  # Any text input will be handled here
+            ],
+            TEMP: [
+                CallbackQueryHandler(settings, pattern='^' + str(CANCELOPT-1) + '$'),
+                CallbackQueryHandler(temp_update), 
+                MessageHandler(filters.TEXT & ~filters.COMMAND, temp_update_text)
+            ],
+            MAX_LENGTH: [
+                CallbackQueryHandler(settings, pattern='^' + str(CANCELOPT-1) + '$'),
+                CallbackQueryHandler(max_len_update), 
+                MessageHandler(filters.TEXT & ~filters.COMMAND, max_len_update_text)
+            ],
+            STOP: [
+                CallbackQueryHandler(settings, pattern='^' + str(CANCELOPT-1) + '$'),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, stop_update_text)
+            ],
+            TOP_P: [
+                CallbackQueryHandler(settings, pattern='^' + str(CANCELOPT-1) + '$'), 
+                CallbackQueryHandler(top_p_update), 
+                MessageHandler(filters.TEXT & ~filters.COMMAND, top_p_update_text)
+            ],
+            FREQ_PENAL: [
+                CallbackQueryHandler(settings, pattern='^' + str(CANCELOPT-1) + '$'), 
+                CallbackQueryHandler(freq_penal_update),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, freq_penal_update_text)
+            ],
+            PRES_PENAL: [
+                CallbackQueryHandler(settings, pattern='^' + str(CANCELOPT-1) + '$'), 
+                CallbackQueryHandler(pres_penal_update), 
+                MessageHandler(filters.TEXT & ~filters.COMMAND, pres_penal_update_text)
+            ],
+            BEST_OF: [
+                CallbackQueryHandler(settings, pattern='^' + str(CANCELOPT-1) + '$'), 
+                CallbackQueryHandler(best_of_update), 
+                MessageHandler(filters.TEXT & ~filters.COMMAND, best_of_update_text)
+            ],
+            N: [
+                CallbackQueryHandler(settings, pattern='^' + str(CANCELOPT-1) + '$'), 
+                CallbackQueryHandler(n_update), 
+                MessageHandler(filters.TEXT & ~filters.COMMAND, n_update_text)
+            ],
+            GEN_PROBS: [
+                CallbackQueryHandler(settings, pattern='^' + str(CANCELOPT-1) + '$'), 
+                CallbackQueryHandler(gen_probs_update),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, gen_probs_update_text)
+            ]
+        },
+        name="my_conversation",
+        persistent=True,
+        block=False,
+        fallbacks=[
+            CommandHandler(['start', 'menu'], BotOptions),
+            MessageHandler(filters.TEXT & ~filters.COMMAND, BotOptions)
+            # MessageHandler(filters.TEXT, BotOptions)
+        ]
+    )
+    application.add_handler(conv_handler)
+    
+    #* ChatAI Added to Group Update
+    application.add_handler(ChatMemberHandler(group_update, ChatMemberHandler.MY_CHAT_MEMBER))
+    #* Group Commands
+    application.add_handler(CommandHandler('text', group_req_text))
+    application.add_handler(CommandHandler('img', group_req_img))
+    
+    #* Inline Query
+    application.add_handler(InlineQueryHandler(inline_query_initial))
+    
+    #* Handle Errors
+    application.add_error_handler(error_han)
+    
+    '''
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start, block=False)],
         states={
@@ -921,17 +1040,18 @@ def main():
     )
     application.add_handler(conv_handler)
     
-    #* ChatAI Added to Group Update
-    application.add_handler(ChatMemberHandler(group_update, ChatMemberHandler.MY_CHAT_MEMBER, block=False))
-    #* Group Commands
-    application.add_handler(CommandHandler('text', group_req_text, block=False))
-    application.add_handler(CommandHandler('img', group_req_img, block=False))
+    # #* ChatAI Added to Group Update
+    # application.add_handler(ChatMemberHandler(group_update, ChatMemberHandler.MY_CHAT_MEMBER, block=False))
+    # #* Group Commands
+    # application.add_handler(CommandHandler('text', group_req_text, block=False))
+    # application.add_handler(CommandHandler('img', group_req_img, block=False))
     
-    #* Inline Query
-    application.add_handler(InlineQueryHandler(inline_query_initial, block=False))
+    # #* Inline Query
+    # application.add_handler(InlineQueryHandler(inline_query_initial, block=False))
     
-    #* Handle Errors
-    application.add_error_handler(error_han, block=False)
+    # #* Handle Errors
+    # application.add_error_handler(error_han, block=False)'''
+    
     
     #* Open Bot to take commands
     # try:
@@ -962,6 +1082,8 @@ def main():
 
 #* Start the Bot
 if __name__ == '__main__':
+    # import asyncio
+    # asyncio.run(rebot(True))
     main()
 
 
