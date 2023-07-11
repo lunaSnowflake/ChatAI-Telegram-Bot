@@ -10,3 +10,5 @@ test*
 *copy.py
 .vscode/
 ChatAI_conversation
+ChatAI_test
+group_users.json
