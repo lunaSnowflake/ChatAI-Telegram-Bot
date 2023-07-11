@@ -1,13 +1,12 @@
 # ChatAI 🤖
 ![ChatAI Banner](https://user-images.githubusercontent.com/110465395/207267370-ebd8f678-f292-4ddd-85f3-812a0e399649.png)
+### Check Out [**ChatAI Telegram Bot**](https://web.telegram.org/k/#@ChatAI_wbot)
+### Check Out [**Cool ChatAI Website**](https://chatai.typedream.app/)
 
 ## Introduction
 Introducing ChatAI, a versatile Telegram bot powered by OpenAI's advanced language processing technologies ChatGPT3 and DALL-E 2.
 With ChatAI, you can easily access powerful text completion and image generation capabilities right within your Telegram chats. Simply add ChatAI to your chat and start using it to elevate your conversations to new heights of efficiency and creativity.
 **ChatAI** is **OpenAI** but for **Telegram.**
-
-### Check Out [**ChatAI**](https://web.telegram.org/k/#@ChatAI_wbot)
-### Check Out [**Cool ChatAI Website**](https://chatai.typedream.app/)
 
 ### ChatAI completed 1000+ users!
 ![1000 Users Gif](https://media.giphy.com/media/6nuiJjOOQBBn2/giphy.gif)
@@ -82,7 +81,7 @@ You can use the `commands` to change the settings for your Text Completion proce
 | `/gen_probs ` | `Command` | Generate a full spectrum probabilities of tokens. | `True` or `False` |
 | `/echo` | `Command` | Echo back the prompt in addition to the completion. | `True` or `False` |
 
-### Check Out [**ChatAI**](https://web.telegram.org/k/#@ChatAI_wbot)
+### Check Out [**ChatAI Telegram Bot**](https://web.telegram.org/k/#@ChatAI_wbot)
 ### Check Out [**Cool ChatAI Website**](https://chatai.typedream.app/)
 
 ### 🌟 Acknowledgements:
