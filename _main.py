@@ -817,7 +817,7 @@ async def group_req_img (update: Update, context: ContextTypes.DEFAULT_TYPE):
 # You can send a main menu, but remember to change the Pickle File "ChatAI_conversation"
 # async def rebot(is_reboot=False):
 #     text="Choose What You Would Like To Do? 😀"
-#     response = await bot.send_message(chat_id="5799361567", text=text, reply_markup=InlineKeyboardMarkup(Main_Menu_Buttons))
+#     response = await bot.send_message(chat_id="<id>", text=text, reply_markup=InlineKeyboardMarkup(Main_Menu_Buttons))
 #     print(response)
     
 ##******************************************************* MAIN FUNCTION ******************************************************
@@ -1055,7 +1055,7 @@ def main():
     
     #* Open Bot to take commands
     # try:
-    #     ''' If want to Delete Webhook connection manually: https://api.telegram.org/bot5983430779:AAE3UIeIXCooM0bOL0BBKOLuC_qkcVxdchs/deleteWebhook 
+    #     ''' If want to Delete Webhook connection manually: https://api.telegram.org/bot<BOT_API>/deleteWebhook 
     #         If using python-telegram-bot v20.x to use webhook install: pip install python-telegram-bot[webhooks]'''
     #     #* WebHook: using ngrok's tunneling: https://dashboard.ngrok.com/tunnels/agents)
     #     '''We are running this on our system port 'Localhost:8443' which using ngrok we are tunneling so that open internet could access. 

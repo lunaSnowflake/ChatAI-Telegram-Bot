@@ -922,7 +922,7 @@ def main():
     
     #* Open Bot to take commands
     # try:
-    #     ''' If want to Delete Webhook connection manually: https://api.telegram.org/bot5983430779:AAE3UIeIXCooM0bOL0BBKOLuC_qkcVxdchs/deleteWebhook 
+    #     ''' If want to Delete Webhook connection manually: https://api.telegram.org/bot<BOT_API>/deleteWebhook 
     #         If using python-telegram-bot v20.x to use webhook install: pip install python-telegram-bot[webhooks]'''
     #     #* WebHook: using ngrok's tunneling: https://dashboard.ngrok.com/tunnels/agents)
     #     '''We are running this on our system port 'Localhost:8443' which using ngrok we are tunneling so that open internet could access. 
